@@ -2,7 +2,7 @@
 
 | Step | Status | Notes |
 |---|---|---|
-| Initial project structure | done | npm workspaces, Next.js placeholders, Express API, Prisma schema, tests, and folder READMEs are in place. No features, migrations, seed data, or deployment. |
+| Initial project structure | done | Root npm workspaces and dev/build/lint/test scripts; Next.js App Router routes, shared header/footer, API helper, and Vitest test; Express app/server, health route, CORS, Zod env validation, Prisma client/schema, four 501 route groups, and Supertest health test. Verified lint, tests, builds, web `/` 200, and API `/health` 200. No product features, migrations, seed data, or deployment. |
 | Step-00 Capture setup | todo | |
 | Step-01 Specification | todo | |
 | Step-02 Tech stack | todo | Email OTP and sign-in link are both included; users can choose either. |
