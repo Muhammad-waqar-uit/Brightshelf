@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+dist/
+coverage/
+.turbo/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Deployment tooling
+.vercel/
+
+# Logs
+*.log
+
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
