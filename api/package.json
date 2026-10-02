@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate && tsc -p tsconfig.json",
-    "lint": "tsc --noEmit -p tsconfig.json",
+    "build": "prisma generate && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "npx oxlint src/",
     "test": "vitest run"
   },
   "dependencies": {
@@ -22,8 +23,9 @@
     "@types/supertest": "^6.0.3",
     "prisma": "^6.16.2",
     "supertest": "^7.1.4",
+    "tsc-alias": "^1.8.16",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3",
+    "typescript": "5.9.3",
     "vitest": "^3.2.4"
   }
 }

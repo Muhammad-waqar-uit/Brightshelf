@@ -19,6 +19,7 @@
 - [todo] Step-01 docs/spec.md: every feature ranked must-have, nice-to-have or out of scope, plus where catalogue data and images come from.
 - [todo] Step-02 docs/tech-stack.md: stack, rendering strategy, database, hosting, free-tier limits. Needs my approval.
 - [todo] Step-03 Add feasible additions to Agent.md based on the spec and tech stack.
+- [todo] Step-03b Engineering rules and git hooks. Approved by me.
 - [todo] Step-04 docs/design.md: how each feature is built (frontend and backend), list of screens and flows, ending with an ordered slice plan, must-have first, each slice deployable on its own.
 - [todo] Step-05 Foundation: scaffold web and api, database, .env.local plus .env.example, seed about 300 products from a free public product API, deploy both to free vercel.app addresses.
 - [todo] Step-06 Slices, in this order, each with tests first, build, visual comparison with amazon.com, commit, deploy:
