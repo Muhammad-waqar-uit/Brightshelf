@@ -69,6 +69,7 @@ Passkeys are an optional follow-on to the approved S5 session design. Implement 
 
 - Keep the API in the existing Node.js and Express workspace under `api/`.
 - Keep `src/app.ts` as the exported application and `src/server.ts` as the listener.
+- Mount public API routes under `/api`. In the Vercel Services deployment, `/api/*` is routed to Express with the path prefix preserved.
 - Organize route definitions, request validation, controllers, services, and Prisma access according to the patterns already established by the project.
 - Validate body, query, and route inputs at the API boundary.
 - Derive the current user from a verified session. Enforce ownership on cart and order reads and writes.
@@ -83,7 +84,7 @@ Supabase Storage is an available service only. The approved product has no image
 ## Data and request flow
 
 1. A page or Server Action validates the requested operation.
-2. The Next.js server calls the Express API with only the required session and input.
+2. The Next.js server calls the Express API through the `API_URL` service binding with only the required session and input, using paths under `/api`.
 3. The API authenticates and authorizes the operation, reads or updates Postgres through Prisma, and returns a typed result.
 4. The web layer renders the result or a visible error state.
 
@@ -93,16 +94,16 @@ Product, price, cart, and order values returned by the API are authoritative. Do
 
 Every customer-facing page or interactive feature must ship with its required API contract in the same roadmap slice, or consume a verified API contract completed by the foundation. Do not mark a slice complete with fixture-only data or a frontend control that has no working server behavior.
 
-| Phase                    | API responsibility delivered with the web behavior                                                                                                                                                                   |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Step-05 Foundation       | Health endpoint, migrated catalogue schema, source-approved seed/import, and bounded catalogue reads needed by the first storefront slice.                                                                           |
-| S1 Storefront and home   | Catalogue-backed home/category reads and the matching server-rendered web caller.                                                                                                                                    |
-| S2 Search and categories | `GET /products` validates `q`, exact `category`, `minPrice`/`maxPrice`, `sort` (`newest`, `price-asc`, `price-desc`), `page`, and bounded `limit`; returns products with pagination metadata for URL-driven results. |
-| S3 Product detail        | Product-by-ID read and not-found/error behavior; cart mutation is delivered in S4.                                                                                                                                   |
-| S4 Cart                  | Guest persistence plus server-validated cart API for account carts; add-to-cart control on product detail ships with this behavior.                                                                                  |
-| S5 Account access        | Email and Google challenge/callback/session API, verification and rate-limit behavior, and protected-route callers.                                                                                                  |
-| S6 Checkout and orders   | Address/order validation, server-calculated order creation, cart clearing after success, and owner-checked list/detail reads.                                                                                        |
-| S7 Passkeys              | Optional WebAuthn ceremony/credential API and the corresponding sign-in UI, only after the core journey.                                                                                                             |
+| Phase                    | API responsibility delivered with the web behavior                                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Step-05 Foundation       | `GET /api/health`, migrated catalogue schema, source-approved seed/import, and bounded catalogue reads needed by the first storefront slice.                                                                             |
+| S1 Storefront and home   | Catalogue-backed home/category reads and the matching server-rendered web caller.                                                                                                                                        |
+| S2 Search and categories | `GET /api/products` validates `q`, exact `category`, `minPrice`/`maxPrice`, `sort` (`newest`, `price-asc`, `price-desc`), `page`, and bounded `limit`; returns products with pagination metadata for URL-driven results. |
+| S3 Product detail        | `GET /api/products/:id` and not-found/error behavior; cart mutation is delivered in S4.                                                                                                                                  |
+| S4 Cart                  | Guest persistence plus server-validated cart API for account carts; add-to-cart control on product detail ships with this behavior.                                                                                      |
+| S5 Account access        | Email and Google challenge/callback/session API, verification and rate-limit behavior, and protected-route callers.                                                                                                      |
+| S6 Checkout and orders   | Address/order validation, server-calculated order creation, cart clearing after success, and owner-checked list/detail reads.                                                                                            |
+| S7 Passkeys              | Optional WebAuthn ceremony/credential API and the corresponding sign-in UI, only after the core journey.                                                                                                                 |
 
 For each phase, add or update API validation and service tests before or with the web integration tests. Review both API and web callers when a route changes, and update `docs/design.md` if the externally visible contract changes. Validate loading, empty, error, and responsive states against narrow and wide viewports before calling the slice done.
 

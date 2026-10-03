@@ -3,6 +3,8 @@ import { ProductCard } from '@/components/ProductCard';
 import { getHomeProducts, type StoreProduct } from '@/lib/products';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   let products: StoreProduct[] = [];
   let errorMessage: string | null = null;

@@ -29,7 +29,7 @@ const sampleProduct = {
   updatedAt: new Date('2026-10-03T00:00:00.000Z'),
 };
 
-describe('GET /products', () => {
+describe('GET /api/products', () => {
   beforeEach(() => {
     vi.mocked(prisma.product.count).mockReset();
     vi.mocked(prisma.product.findMany).mockReset();
@@ -41,7 +41,7 @@ describe('GET /products', () => {
     vi.mocked(prisma.product.findMany).mockResolvedValue([sampleProduct]);
 
     const response = await request(app).get(
-      '/products?q=lamp&category=lighting&minPrice=20&maxPrice=30&sort=price-asc&page=2&limit=5',
+      '/api/products?q=lamp&category=lighting&minPrice=20&maxPrice=30&sort=price-asc&page=2&limit=5',
     );
     const where = {
       category: 'lighting',
@@ -81,7 +81,7 @@ describe('GET /products', () => {
     vi.mocked(prisma.product.count).mockResolvedValue(0);
     vi.mocked(prisma.product.findMany).mockResolvedValue([]);
 
-    const response = await request(app).get('/products');
+    const response = await request(app).get('/api/products');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -101,7 +101,7 @@ describe('GET /products', () => {
     vi.mocked(prisma.product.findMany).mockResolvedValue([]);
 
     const response = await request(app).get(
-      '/products?q=&category=&minPrice=&maxPrice=&sort=newest',
+      '/api/products?q=&category=&minPrice=&maxPrice=&sort=newest',
     );
 
     expect(response.status).toBe(200);
@@ -115,12 +115,12 @@ describe('GET /products', () => {
   });
 
   it.each([
-    '/products?minPrice=30&maxPrice=20',
-    '/products?limit=101',
-    '/products?page=0',
-    '/products?sort=discount',
-    '/products?q=%20',
-    '/products?unknown=value',
+    '/api/products?minPrice=30&maxPrice=20',
+    '/api/products?limit=101',
+    '/api/products?page=0',
+    '/api/products?sort=discount',
+    '/api/products?q=%20',
+    '/api/products?unknown=value',
   ])('rejects invalid query parameters without querying the database: %s', async (url) => {
     const response = await request(app).get(url);
 
@@ -134,7 +134,7 @@ describe('GET /products', () => {
     vi.mocked(prisma.product.count).mockResolvedValue(1);
     vi.mocked(prisma.product.findMany).mockResolvedValue([sampleProduct]);
 
-    const response = await request(app).get('/products?sort=price-desc');
+    const response = await request(app).get('/api/products?sort=price-desc');
 
     expect(response.status).toBe(200);
     expect(prisma.product.findMany).toHaveBeenCalledWith({
@@ -149,7 +149,7 @@ describe('GET /products', () => {
     vi.mocked(prisma.product.count).mockResolvedValue(9);
     vi.mocked(prisma.product.findMany).mockResolvedValue([sampleProduct]);
 
-    const response = await request(app).get('/products?page=10&limit=8');
+    const response = await request(app).get('/api/products?page=10&limit=8');
 
     expect(response.status).toBe(200);
     expect(response.body.pagination).toEqual({
@@ -171,7 +171,7 @@ describe('GET /products', () => {
       new Prisma.PrismaClientInitializationError('database unavailable', '6.19.3'),
     );
 
-    const response = await request(app).get('/products');
+    const response = await request(app).get('/api/products');
 
     expect(response.status).toBe(503);
     expect(response.body).toEqual({
@@ -185,7 +185,7 @@ describe('GET /products', () => {
   it('returns one product by stable ID with a numeric price', async () => {
     vi.mocked(prisma.product.findUnique).mockResolvedValue(sampleProduct);
 
-    const response = await request(app).get('/products/product-1');
+    const response = await request(app).get('/api/products/product-1');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -208,7 +208,7 @@ describe('GET /products', () => {
   it('returns a structured not-found response for an unknown product ID', async () => {
     vi.mocked(prisma.product.findUnique).mockResolvedValue(null);
 
-    const response = await request(app).get('/products/unknown-product');
+    const response = await request(app).get('/api/products/unknown-product');
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -220,7 +220,7 @@ describe('GET /products', () => {
   });
 
   it('rejects an overlong product ID before querying the database', async () => {
-    const response = await request(app).get(`/products/${'x'.repeat(129)}`);
+    const response = await request(app).get(`/api/products/${'x'.repeat(129)}`);
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe('INVALID_PRODUCT_ID');
@@ -232,7 +232,7 @@ describe('GET /products', () => {
       new Prisma.PrismaClientInitializationError('database unavailable', '6.19.3'),
     );
 
-    const response = await request(app).get('/products/product-1');
+    const response = await request(app).get('/api/products/product-1');
 
     expect(response.status).toBe(503);
     expect(response.body.error.code).toBe('CATALOG_UNAVAILABLE');

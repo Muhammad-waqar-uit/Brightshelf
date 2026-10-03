@@ -45,13 +45,13 @@ export function getProducts(params: ProductSearchParams = {}): Promise<ProductLi
   if (params.page) query.set('page', params.page);
   if (params.limit !== undefined) query.set('limit', String(params.limit));
 
-  return apiFetch<ProductListResponse>(`/products?${query.toString()}`);
+  return apiFetch<ProductListResponse>(`/api/products?${query.toString()}`);
 }
 
 export function getHomeProducts(): Promise<ProductListResponse> {
-  return apiFetch<ProductListResponse>('/products?limit=8');
+  return apiFetch<ProductListResponse>('/api/products?limit=8');
 }
 
 export function getProduct(id: string): Promise<ProductResponse> {
-  return apiFetch<ProductResponse>(`/products/${encodeURIComponent(id)}`);
+  return apiFetch<ProductResponse>(`/api/products/${encodeURIComponent(id)}`);
 }

@@ -11,14 +11,14 @@ export const app = express();
 app.use(cors({ origin: env.WEB_ORIGIN, credentials: true }));
 app.use(express.json());
 
-app.get('/health', (_request, response) => {
+app.get('/api/health', (_request, response) => {
   response.json({ status: 'ok' });
 });
 
-app.use('/products', productsRouter);
-app.use('/cart', cartRouter);
-app.use('/auth', authRouter);
-app.use('/orders', ordersRouter);
+app.use('/api/products', productsRouter);
+app.use('/api/cart', cartRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/orders', ordersRouter);
 
 app.use((error: unknown, _request: Request, response: Response, next: NextFunction) => {
   if (response.headersSent) {
@@ -33,3 +33,5 @@ app.use((error: unknown, _request: Request, response: Response, next: NextFuncti
     },
   });
 });
+
+export default app;

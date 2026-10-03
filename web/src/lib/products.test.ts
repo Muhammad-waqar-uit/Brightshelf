@@ -28,7 +28,7 @@ describe('getHomeProducts', () => {
       pagination: { page: 1, limit: 8, total: 0, totalPages: 0 },
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      new URL('/products?limit=8', 'http://localhost:4000'),
+      new URL('/api/products?limit=8', 'http://localhost:4000'),
       undefined,
     );
   });
@@ -60,7 +60,7 @@ describe('getHomeProducts', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       new URL(
-        '/products?q=desk+lamp&category=home+decor&minPrice=10&maxPrice=50&sort=price-asc&page=2',
+        '/api/products?q=desk+lamp&category=home+decor&minPrice=10&maxPrice=50&sort=price-asc&page=2',
         'http://localhost:4000',
       ),
       undefined,
@@ -80,7 +80,7 @@ describe('getHomeProducts', () => {
     await getProduct('item/a');
 
     expect(fetchMock).toHaveBeenCalledWith(
-      new URL('/products/item%2Fa', 'http://localhost:4000'),
+      new URL('/api/products/item%2Fa', 'http://localhost:4000'),
       undefined,
     );
   });

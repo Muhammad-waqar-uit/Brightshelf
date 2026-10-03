@@ -53,7 +53,9 @@ Whichever method is approved, the API must verify the session and enforce owners
 
 ## Hosting
 
-Use the roadmap's two-project Vercel arrangement: Next.js from `web/` and the Express API from `api/`, each with a free `vercel.app` hostname. Vercel documents Express deployment as a serverless function. Keep the API stateless between requests and verify function runtime, bundle, and request limits before deployment.
+Deploy the repository as one Vercel project using Vercel Services: `web` uses `web/` and Next.js, while `api` uses `api/` and Express. Public requests matching `/api/*` route to `api`; all other public requests route to `web`. Express mounts endpoints under `/api`, because service rewrites preserve the original path. The `web` service binds to `api` as `API_URL`; Vercel injects this URL at runtime, so do not manually set `API_URL` in Vercel project environment variables. Keep the API stateless between requests and verify function runtime, bundle, and request limits before deployment.
+
+The home page is runtime-rendered so it can use the injected service binding, which is not available during builds. This is an intentional exception to the shared-catalogue ISR goal; product and search routes must likewise avoid build-time API calls.
 
 Vercel Hobby limits checked on 2026-10-03 include 200 projects, 100 deployments per day, 25 projects connected to a Git repository, and a 120-second proxied request timeout. Confirm current plan terms and function limits before deploying. Hobby use is not a substitute for a production service guarantee.
 

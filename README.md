@@ -1,6 +1,6 @@
 # Brightshelf
 
-Brightshelf is an Amazon-style e-commerce assessment project. This repository currently contains the empty web and API foundations only.
+Brightshelf is an independently designed general merchandise storefront for a technical assessment.
 
 See [docs/](docs/README.md) for project notes and setup details.
 
@@ -12,6 +12,8 @@ npm run dev
 ```
 
 The web app runs at `http://localhost:3000` and the API runs at `http://localhost:4000`.
+
+The root `vercel.json` configures a Vercel Services deployment with public `/api/*` routing to Express, all other paths to Next.js, and a web-to-api service binding.
 
 ## Workspaces
 
