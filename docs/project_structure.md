@@ -2,7 +2,9 @@
 ├─ .agent-logs/ - captured agent prompts and responses for this session
 ├─ .github/ - GitHub automation and repo configuration
 ├─ api/ - Express API, Prisma models, route handlers, and validation logic
-├─ docs/ - product requirements, roadmap, progress, and design notes
+├─ docs/ - Brightshelf specification, roadmap, progress, design, and slice plans
+│ ├─ reference/ - reference-only screenshots, never shipped
+│ └─ superpowers/ - slice plans and reusable prompts, separate from session logs
 ├─ scripts/ - local developer scripts and project tooling
 ├─ web/ - Next.js storefront app and UI components
 ├─ Agent.md - project instruction file for the agent

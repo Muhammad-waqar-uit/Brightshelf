@@ -4,10 +4,10 @@ Single source of truth for AI coding agents in this repo. Read it, CLAUDE.md, RU
 
 ## 0. Project snapshot
 
-Brightshelf is an Amazon-style store built for a timed technical assessment. Monorepo:
+Brightshelf is an independently designed general merchandise store built for a technical assessment. Its shopping journey uses familiar retail patterns, while its brand, visual design, copy, and implementation are specific to Brightshelf. Monorepo:
 
 - web/ Next.js App Router, TypeScript, Tailwind, Server Actions.
-- api/ Node.js, Express, TypeScript, Prisma, PostgreSQL (Neon).
+- api/ Node.js, Express, TypeScript, Prisma, PostgreSQL (Supabase).
 - docs/ requirements, roadmap, strategy, progress, spec, tech-stack, design.
   The brand is Brightshelf. No Amazon logo, images, copy or links.
 
@@ -36,7 +36,9 @@ cd web && npx tsc --noEmit && npx oxlint src/ && npx next build
 
 ## 4. Auth contract
 
-- Methods: email and password, Sign in with Google, passkeys (SimpleWebAuthn).
+- Step-06 S5 methods follow the roadmap: Sign in with Google and a user choice of email one-time code or sign-in link.
+- Confirm the email method with the owner before implementation if the roadmap or current approved specification changes.
+- Passkeys (SimpleWebAuthn) are a separate optional Step-06 S7 method, not part of the initial S5 implementation.
 - The session is a signed JWT in an httpOnly, secure, sameSite cookie. The api verifies it with a shared secret.
 - Whatever the sign-in method, the result is the same session cookie.
 - Passkey RP ID and origin come from env (WEBAUTHN_RP_ID, WEBAUTHN_ORIGIN) and must match the deployed address.

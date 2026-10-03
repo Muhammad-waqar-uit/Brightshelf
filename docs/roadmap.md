@@ -15,12 +15,12 @@
 
 ## STEPS
 
-- [todo] Step-00 Capture setup: hooks logging prompts and responses to .agent-logs/, CAPTURE-TEST.md passing in two sessions, git init, public GitHub repo. I save amazon.com screenshots to docs/recon/ (reference only, never shipped).
-- [todo] Step-01 docs/spec.md: every feature ranked must-have, nice-to-have or out of scope, plus where catalogue data and images come from.
-- [todo] Step-02 docs/tech-stack.md: stack, rendering strategy, database, hosting, free-tier limits. Needs my approval.
-- [todo] Step-03 Add feasible additions to Agent.md based on the spec and tech stack.
-- [todo] Step-03b Engineering rules and git hooks. Approved by me.
-- [todo] Step-04 docs/design.md: how each feature is built (frontend and backend), list of screens and flows, ending with an ordered slice plan, must-have first, each slice deployable on its own.
+- [done] Step-00 Capture setup: hooks logging prompts and responses to .agent-logs/, CAPTURE-TEST.md passing in two sessions, git init, public GitHub repo. I save amazon.com screenshots to docs/reference/ (reference only, never shipped).
+- [done] Step-01 docs/spec.md: every feature ranked must-have, nice-to-have or out of scope, plus where catalogue data and images come from.
+- [done] Step-02 docs/tech-stack.md: stack, rendering strategy, database, hosting, free-tier limits. Owner approval recorded on 2026-10-03.
+- [done] Step-03 Add feasible additions to Agent.md based on the spec and tech stack.
+- [done] Step-03b Engineering rules and git hooks. Approved by me.
+- [done] Step-04 docs/design.md: how each feature is built (frontend and backend), list of screens and flows, ending with an ordered slice plan, must-have first, each slice deployable on its own.
 - [todo] Step-05 Foundation: scaffold web and api, database, .env.local plus .env.example, seed about 300 products from a free public product API, deploy both to free vercel.app addresses.
 - [todo] Step-06 Slices, in this order, each with tests first, build, visual comparison with amazon.com, commit, deploy:
   - [todo] S1 Header, footer, home with category rails and hero

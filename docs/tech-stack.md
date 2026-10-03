@@ -1,58 +1,81 @@
-# Tech Stack Proposal
+# Brightshelf Technology Plan
 
-Status: Draft for approval. No application code has been started.
+Status: The owner approved Next.js, Node.js with Express, Supabase Postgres, and Supabase Storage on 2026-10-03. Storage is an available platform capability only; an image-upload feature is not in the approved product scope.
 
-## Monorepo and languages
+## Workspace and runtime
 
-Use one Git repository with `web/` and `api/` as separate deployable applications. Use TypeScript in both, Node.js 22 LTS, and npm workspaces at the repository root.
+Keep the existing npm-workspace repository with `web/` and `api/` as separate applications. Use strict TypeScript and Node.js 22.
 
-- `web/`: Next.js App Router, React, TypeScript, and Tailwind CSS. Next.js provides routing, Server Components, Server Actions, and Vercel deployment support in one framework.
-- `api/`: Node.js, Express, TypeScript, and Prisma. Keep data access and database credentials inside this service; Prisma gives typed queries and migrations.
-- The browser calls the web application. Server Actions call the API over HTTPS. Server Components use server-side fetches for read operations. This keeps database access and shared secrets out of browser bundles and avoids a browser-to-API CORS dependency for normal app traffic.
-- Use npm workspaces to install and run both packages from one repository. Vercel projects use `web/` and `api/` as their respective root directories.
+- `web/`: Next.js App Router, React, and Tailwind CSS. Keep Server Components as the default and add client components only for browser interaction.
+- `api/`: Node.js, Express, TypeScript, and Prisma. Keep the Express application in `src/app.ts` and the process listener in `src/server.ts`, following the existing scaffold.
+- Keep Express as the sole API framework.
+- Run local development and tests through the existing npm workspace scripts. Keep server credentials out of browser bundles.
 
-## Rendering strategy
+## Rendering and request flow
 
-- Home and product pages: Incremental Static Regeneration (ISR). Pre-render the common product and home content, then revalidate on a short interval or invalidate affected tags after catalog updates. This gives fast initial loads while keeping data refreshable.
-- Search and category results: Server-side rendering (SSR) from URL query parameters. Search terms, sorting, and filters remain shareable and are calculated against the current database contents rather than a stale static page.
-- Cart drawer and checkout interactions: client components for interactive state and immediate feedback. Persist cart changes through Server Actions and the API; the server remains authoritative for prices and totals.
-- Other pages: default to Server Components and server-side reads. Add client components only where interaction requires browser state.
+- Render catalogue pages on the server. Use Next.js revalidation for shared home and product data where freshness permits.
+- Search and category pages read validated URL parameters and request current, bounded results from Express API routes.
+- Server Actions validate browser input and call the API for mutations. The API revalidates product and cart data and owns business rules.
+- Keep per-user cart, order, and authentication data out of shared caches.
+- Give every data-driven route a loading state and visible empty and error states.
 
-## Database
+## Database and ORM
 
-Use Neon Free Postgres, accessed only from `api/` through Prisma. Use Neon's pooled connection string for serverless request traffic and keep migrations as an explicit deployment or setup task.
+Use Supabase Postgres with Prisma. The Express API is the only application service that connects to Postgres. Do not expose the database URL to Next.js client code.
 
-Current advertised Neon Free limits (checked 2026-10-02): 100 CU-hours per project per month, up to 2 CU autoscaling, 1 GB Postgres storage per project, 20 GB total storage across the account, 5 GB public network transfer per project, 10 branches per project, and automatic scale-to-zero after 5 minutes of inactivity. There is no uptime SLA. Compute suspends when CU-hour or egress allowance is exhausted; writes are blocked when storage limits are reached. These limits are adequate for a small assessment demo, not a production service with availability guarantees.
+For Vercel's serverless API deployment, use Supabase's Supavisor transaction pooler for runtime queries and its session pooler or direct connection for migrations. Prisma's transaction-pool connection uses the documented `pgbouncer=true` parameter. Keep separate `DATABASE_URL` and `DIRECT_URL` values, and use the direct/session URL for migration operations. Verify the exact connection strings in the Supabase dashboard before deployment.
+
+Create indexes for catalogue filters, joins, and ordering. Bound list queries and keep schema changes in committed Prisma migrations.
+
+## Supabase plan limits and availability
+
+Supabase Free was checked on 2026-10-03. The published allowances include 500 MB of database size per project, 1 GB of file storage, 5 GB of egress, 5 GB of cached egress, and two free projects per account. Free projects may pause after one week of inactivity. The free plan has no production uptime guarantee, and its quotas and terms can change.
+
+These limits are adequate for a small assessment catalogue and demo only if the seed data and traffic remain within quota. A paused project can make the live backend unavailable until resumed, so confirm its status before a presentation or submission. Do not add paid compute, storage, custom domains, or overage without the owner's approval.
+
+## File storage boundary
+
+Supabase Storage is approved as an available service, not as an upload feature. The current product scope imports catalogue image URLs from the approved data source and contains no owner dashboard or product-image upload flow. Do not add upload routes, forms, buckets, or client permissions as part of the current slices.
+
+If a future approved feature needs uploaded files, implement it through the Express API or a specifically approved signed-upload flow. Validate file type, size, ownership, and object path; keep privileged Supabase credentials on the server; and apply restrictive bucket policies. The free plan currently includes 1 GB of file storage, so enforce an explicit product limit if uploads are later approved.
+
+## Catalogue source
+
+The roadmap calls for about 300 products from a free public product API. DummyJSON is the candidate named in the project proposal, not yet a verified or guaranteed source. Before import, confirm its current terms, available product count, image URLs, and suitability for the demo.
+
+Import approved records once into Postgres and serve the catalogue from Brightshelf's API. Do not depend on the upstream API for live page requests. Configure Next.js remote image handling for the verified image host. If the source cannot provide enough suitable products, ask before substituting another source.
 
 ## Authentication and API trust
 
-Use Auth.js in `web/` for Google OAuth and the authenticated web session. On the email sign-in screen, let users choose a one-time code or a sign-in link. Both email options use one API-owned challenge flow sent by Nodemailer through Gmail SMTP. A Server Action requests the selected mode from `api/`; the API generates a cryptographically random six-digit code or an opaque random link token, stores only a keyed hash with an expiry, and sends the email. Codes expire after 10 minutes; link tokens expire after 15 minutes. Each challenge is rate-limited by email and IP, limited to five verification attempts, and consumed only once. Auth.js uses a Credentials provider to establish the web session only after the API confirms the challenge and creates or finds the user. This avoids giving Auth.js direct database access and keeps Neon access inside `api/`. Keep codes, link tokens, and SMTP credentials out of logs.
+For S5, follow the roadmap: Google sign-in plus a customer choice of email one-time code or sign-in link, delivered through Nodemailer and Gmail SMTP. Passkeys remain the later, optional S7 slice.
 
-Use a dedicated Gmail account with 2-Step Verification enabled and an app password. Configure `smtp.gmail.com` over TLS. Gmail account sending limits, anti-abuse controls, and account policy can affect delivery; this is suitable for a low-volume assessment demo, not guaranteed transactional email. Keep the app password only in the API deployment environment and verify current Gmail account requirements before setup. The API does not trust user IDs sent in request bodies.
-
-After Auth.js authenticates a user, the web app issues a short-lived, HMAC-signed API session JWT containing the stable user ID and minimal claims. Store that JWT in a Secure, HttpOnly, SameSite=Lax cookie scoped to the web origin. A Server Action reads the cookie server-side and forwards the token to `api/` in an Authorization header. The API verifies the signature with a shared `JWT_SECRET`, and validates issuer, audience, and expiration before authorizing protected operations. Never expose the shared secret to client code. The API must not accept a JWT from arbitrary browser callers merely because it has a valid signature; validate claims and authorization on every protected operation.
-
-Use SimpleWebAuthn for passkeys in Step-06 S7. Persist credential public keys, credential IDs, counter values, and user associations in Postgres. Keep challenges short-lived and single-use. Passkeys require a stable HTTPS origin and matching relying party ID.
+Whichever method is approved, the API must verify the session and enforce ownership on every protected operation. Do not accept a user ID or order total as proof from the browser. Keep OAuth secrets, SMTP credentials, Supabase service credentials, database URLs, and signing keys in server-side environment variables. Do not log authentication codes or bearer tokens.
 
 ## Hosting
 
-Deploy two Vercel projects from the same public repository: Next.js from `web/` and the Express API as serverless functions from `api/`. Both use free `vercel.app` hostnames. Put each project's secrets and URLs in its own environment configuration. The API should remain stateless between requests and must not rely on in-memory sessions or background workers.
+Use the roadmap's two-project Vercel arrangement: Next.js from `web/` and the Express API from `api/`, each with a free `vercel.app` hostname. Vercel documents Express deployment as a serverless function. Keep the API stateless between requests and verify function runtime, bundle, and request limits before deployment.
 
-Current Vercel Hobby limits include 200 projects, 100 deployments per day, 100 deployments per hour, a 45-minute build limit, and a 100 MB CLI source upload limit. Function limits vary by runtime and configuration; verify the current runtime and execution duration limits when deploying the Express API. Hobby runtime logs are retained for one hour. Hobby use is intended for personal, non-commercial projects, so confirm the assessment demo fits Vercel's current plan terms. Limits and plan terms can change; check the live plan dashboard before deployment.
+Vercel Hobby limits checked on 2026-10-03 include 200 projects, 100 deployments per day, 25 projects connected to a Git repository, and a 120-second proxied request timeout. Confirm current plan terms and function limits before deploying. Hobby use is not a substitute for a production service guarantee.
 
-## Product data and images
-
-Use DummyJSON's public products endpoints as seed input, and import the fetched records into Postgres once. Read products from Postgres at runtime rather than depending on DummyJSON availability. Preserve source image URLs from DummyJSON's image CDN for the demo; configure Next.js image handling for the approved host. DummyJSON is demo data, not a commercial catalog or availability guarantee. Confirm its current product count, image behavior, and usage terms before seeding. If it does not supply about 300 usable products, ask before changing the roadmap or adding another source. Do not use Amazon product images, logos, copy, or links.
+Keep browser traffic on the web origin. Server-side Next.js code calls Express and forwards only the required verified session. Do not rely on cookies being shared across separate Vercel hostnames or use permissive credentialed CORS.
 
 ## Testing
 
-- Vitest for focused unit tests in `web/` and `api/`, including validation, pricing, authorization, and utility logic. It runs locally and has no hosted free-tier quota.
-- Playwright for browser end-to-end tests in Step-07. Run locally and in a free CI allowance if available; browser binaries and hosted CI minutes are separate from Playwright and may have platform quotas.
-- Test the production-like deployment path for authentication cookies and passkeys because local origins do not reproduce all production host constraints.
+- Use Vitest for focused web and API tests, including validation, session authorization, catalogue queries, cart rules, and order creation.
+- Use the repository's required type checks, linting, and builds for each affected workspace.
+- Add Playwright coverage for the complete shopping flow during the roadmap's hardening step.
+- Verify the deployed authentication callback URLs, API connectivity, Supabase connection mode, and passkey origin if S7 is approved.
 
-## Risks and simple fixes
+## Environment and cost controls
 
-- CORS and cookies across two `vercel.app` subdomains: browser cookies cannot be shared across unrelated `*.vercel.app` project hosts, and broad CORS does not solve that cookie boundary. Keep browser requests on `web/`; use Server Actions to forward the HttpOnly API JWT as a bearer token to `api/`. Restrict API CORS to the web origin for any explicitly required browser request.
-- Passkey RP ID: the RP ID must match the web hostname, and credentials will not automatically work if the final hostname changes. Reserve the final web hostname before passkey implementation and configure the exact origin and RP ID from server environment variables.
-- Google OAuth redirect URI: Google requires an exact callback URL match. Add the final web URL plus localhost development callback to Google OAuth configuration, then verify the production callback after the hostname is assigned.
-- `brightshelf.vercel.app` may be taken: check hostname availability before configuring OAuth or passkeys. If unavailable, choose an available Brightshelf-branded Vercel hostname once, then use it consistently for OAuth, passkeys, environment variables, and documentation.
+Keep `.env.example` aligned with environment variables used by the code. Expect separate web and API settings for public API origin, Supabase URL, storage credentials when needed, pooled database URL, migration connection URL, OAuth, SMTP, and session signing. Use empty placeholders only; never commit actual credentials.
+
+All implementation and deployment choices must remain within free plans. Recheck provider quotas before setup and before submission. If a requirement would need paid usage, pause and ask the owner for direction.
+
+## Current provider references
+
+- [Supabase Prisma connection guide](https://supabase.com/docs/guides/database/prisma)
+- [Supabase billing and quotas](https://supabase.com/docs/guides/platform/billing-on-supabase)
+- [Supabase pricing](https://supabase.com/pricing)
+- [Express on Vercel](https://vercel.com/kb/guide/ship-an-express-app-on-vercel)
+- [Vercel limits](https://vercel.com/docs/limits)

@@ -85,7 +85,7 @@ Commit the root package-lock.json. After changing any package.json, run npm inst
 2. No N+1 queries. Never await a query inside a loop over rows. Use Prisma `include`, `findMany` with `in`, or a single grouped query.
 3. Bounded responses. Every list endpoint paginates or has an explicit cap (take). Default page size 24, max 100.
 4. Cache hot read-only data (categories, home rails) with a small TTL in memory or through Next.js revalidation. Invalidate on write paths. Never cache per-user data.
-5. Neon: use the pooled connection string, one shared Prisma client, never one client per request.
+5. Supabase Postgres: use the documented pooled connection string for runtime queries and a direct or session connection for migrations. Reuse one Prisma client, never create one per request.
 6. Compression middleware is on. Register all middleware before routes.
 7. Validate every request body, query and param with zod. Never trust identity from the request body. Derive the user from the verified session token.
 8. Passwords hashed with a strong algorithm (argon2 or bcrypt). Login rate limited. No secrets or fallback credentials in code.
