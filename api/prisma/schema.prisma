@@ -1,11 +1,13 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  extensions = [pg_trgm]
 }
 
 model Product {
@@ -25,5 +27,8 @@ model Product {
   @@unique([source, sourceId])
   @@index([category, price])
   @@index([price])
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([brand(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([createdAt])
   @@map("products")
 }

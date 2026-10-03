@@ -4,9 +4,34 @@ import { z } from 'zod';
 import { listProducts } from '../services/products';
 
 const router = Router();
-const productListQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(24).default(8),
-});
+const productListQuerySchema = z
+  .object({
+    q: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().trim().min(1).max(100).optional(),
+    ),
+    category: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().trim().min(1).max(80).optional(),
+    ),
+    minPrice: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.coerce.number().finite().min(0).max(99_999_999.99).optional(),
+    ),
+    maxPrice: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.coerce.number().finite().min(0).max(99_999_999.99).optional(),
+    ),
+    sort: z.enum(['newest', 'price-asc', 'price-desc']).default('newest'),
+    page: z.coerce.number().int().min(1).max(1000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(24),
+  })
+  .strict()
+  .refine(
+    ({ minPrice, maxPrice }) =>
+      minPrice === undefined || maxPrice === undefined || minPrice <= maxPrice,
+    { message: 'minPrice must not exceed maxPrice' },
+  );
 
 router.get('/', async (request, response, next) => {
   const query = productListQuerySchema.safeParse(request.query);
@@ -14,15 +39,15 @@ router.get('/', async (request, response, next) => {
     response.status(400).json({
       error: {
         code: 'INVALID_QUERY',
-        message: 'limit must be an integer between 1 and 24',
+        message: query.error.issues[0]?.message ?? 'Invalid product query parameters',
       },
     });
     return;
   }
 
   try {
-    const products = await listProducts(query.data.limit);
-    response.json({ products });
+    const result = await listProducts(query.data);
+    response.json(result);
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientInitializationError) {
       response.status(503).json({

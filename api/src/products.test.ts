@@ -7,35 +7,48 @@ import { prisma } from './lib/prisma';
 vi.mock('./lib/prisma', () => ({
   prisma: {
     product: {
+      count: vi.fn(),
       findMany: vi.fn(),
     },
   },
 }));
 
+const sampleProduct = {
+  id: 'product-1',
+  source: 'approved-source',
+  sourceId: '1',
+  title: 'Desk Lamp',
+  description: 'A compact desk lamp.',
+  category: 'lighting',
+  price: new Prisma.Decimal('24.50'),
+  thumbnailUrl: 'https://images.example.test/lamp.jpg',
+  images: ['https://images.example.test/lamp.jpg'],
+  brand: 'Northlight',
+  createdAt: new Date('2026-10-03T00:00:00.000Z'),
+  updatedAt: new Date('2026-10-03T00:00:00.000Z'),
+};
+
 describe('GET /products', () => {
   beforeEach(() => {
+    vi.mocked(prisma.product.count).mockReset();
     vi.mocked(prisma.product.findMany).mockReset();
   });
 
-  it('returns a bounded catalogue page with numeric prices', async () => {
-    vi.mocked(prisma.product.findMany).mockResolvedValue([
-      {
-        id: 'product-1',
-        source: 'approved-source',
-        sourceId: '1',
-        title: 'Desk Lamp',
-        description: 'A compact desk lamp.',
-        category: 'home',
-        price: new Prisma.Decimal('24.50'),
-        thumbnailUrl: 'https://images.example.test/lamp.jpg',
-        images: ['https://images.example.test/lamp.jpg'],
-        brand: 'Northlight',
-        createdAt: new Date('2026-10-03T00:00:00.000Z'),
-        updatedAt: new Date('2026-10-03T00:00:00.000Z'),
-      },
-    ]);
+  it('returns a filtered, bounded page with numeric prices and pagination', async () => {
+    vi.mocked(prisma.product.count).mockResolvedValue(21);
+    vi.mocked(prisma.product.findMany).mockResolvedValue([sampleProduct]);
 
-    const response = await request(app).get('/products?limit=4');
+    const response = await request(app).get(
+      '/products?q=lamp&category=lighting&minPrice=20&maxPrice=30&sort=price-asc&page=2&limit=5',
+    );
+    const where = {
+      category: 'lighting',
+      OR: [
+        { title: { contains: 'lamp', mode: 'insensitive' } },
+        { brand: { contains: 'lamp', mode: 'insensitive' } },
+      ],
+      price: { gte: 20, lte: 30 },
+    };
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -44,48 +57,115 @@ describe('GET /products', () => {
           id: 'product-1',
           title: 'Desk Lamp',
           description: 'A compact desk lamp.',
-          category: 'home',
+          category: 'lighting',
           price: 24.5,
           thumbnailUrl: 'https://images.example.test/lamp.jpg',
           images: ['https://images.example.test/lamp.jpg'],
           brand: 'Northlight',
         },
       ],
+      pagination: { page: 2, limit: 5, total: 21, totalPages: 5 },
     });
+    expect(prisma.product.count).toHaveBeenCalledWith({ where });
     expect(prisma.product.findMany).toHaveBeenCalledWith({
-      orderBy: { createdAt: 'desc' },
-      take: 4,
+      where,
+      orderBy: [{ price: 'asc' }, { createdAt: 'desc' }, { id: 'desc' }],
+      skip: 5,
+      take: 5,
     });
   });
 
-  it('uses a bounded default when no limit is provided', async () => {
+  it('uses the bounded default page size and returns an intentional empty result', async () => {
+    vi.mocked(prisma.product.count).mockResolvedValue(0);
     vi.mocked(prisma.product.findMany).mockResolvedValue([]);
 
     const response = await request(app).get('/products');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ products: [] });
+    expect(response.body).toEqual({
+      products: [],
+      pagination: { page: 1, limit: 24, total: 0, totalPages: 0 },
+    });
     expect(prisma.product.findMany).toHaveBeenCalledWith({
-      orderBy: { createdAt: 'desc' },
+      where: {},
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 0,
+      take: 24,
+    });
+  });
+
+  it('treats empty form fields as omitted search filters', async () => {
+    vi.mocked(prisma.product.count).mockResolvedValue(0);
+    vi.mocked(prisma.product.findMany).mockResolvedValue([]);
+
+    const response = await request(app).get(
+      '/products?q=&category=&minPrice=&maxPrice=&sort=newest',
+    );
+
+    expect(response.status).toBe(200);
+    expect(prisma.product.count).toHaveBeenCalledWith({ where: {} });
+    expect(prisma.product.findMany).toHaveBeenCalledWith({
+      where: {},
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 0,
+      take: 24,
+    });
+  });
+
+  it.each([
+    '/products?minPrice=30&maxPrice=20',
+    '/products?limit=101',
+    '/products?page=0',
+    '/products?sort=discount',
+    '/products?q=%20',
+    '/products?unknown=value',
+  ])('rejects invalid query parameters without querying the database: %s', async (url) => {
+    const response = await request(app).get(url);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_QUERY');
+    expect(prisma.product.count).not.toHaveBeenCalled();
+    expect(prisma.product.findMany).not.toHaveBeenCalled();
+  });
+
+  it('uses the requested descending price sort', async () => {
+    vi.mocked(prisma.product.count).mockResolvedValue(1);
+    vi.mocked(prisma.product.findMany).mockResolvedValue([sampleProduct]);
+
+    const response = await request(app).get('/products?sort=price-desc');
+
+    expect(response.status).toBe(200);
+    expect(prisma.product.findMany).toHaveBeenCalledWith({
+      where: {},
+      orderBy: [{ price: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+      skip: 0,
+      take: 24,
+    });
+  });
+
+  it('clamps an out-of-range page to the last available page', async () => {
+    vi.mocked(prisma.product.count).mockResolvedValue(9);
+    vi.mocked(prisma.product.findMany).mockResolvedValue([sampleProduct]);
+
+    const response = await request(app).get('/products?page=10&limit=8');
+
+    expect(response.status).toBe(200);
+    expect(response.body.pagination).toEqual({
+      page: 2,
+      limit: 8,
+      total: 9,
+      totalPages: 2,
+    });
+    expect(prisma.product.findMany).toHaveBeenCalledWith({
+      where: {},
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 8,
       take: 8,
     });
   });
 
-  it('rejects an invalid limit before querying the database', async () => {
-    const response = await request(app).get('/products?limit=25');
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      error: {
-        code: 'INVALID_QUERY',
-        message: 'limit must be an integer between 1 and 24',
-      },
-    });
-    expect(prisma.product.findMany).not.toHaveBeenCalled();
-  });
-
   it('returns an explicit unavailable response when the database cannot connect', async () => {
-    vi.mocked(prisma.product.findMany).mockRejectedValue(
+    vi.mocked(prisma.product.count).mockRejectedValue(
       new Prisma.PrismaClientInitializationError('database unavailable', '6.19.3'),
     );
 

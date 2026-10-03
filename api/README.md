@@ -31,3 +31,5 @@ If Prisma reports `P1001`, check that the database hostname and port are reachab
 - Use **Session pooler** for `DIRECT_URL` and migration commands from an IPv4-only network.
 
 Set the values in the ignored `api/.env` locally. Do not paste them into chat or commit them. Rerun `npx prisma migrate status` from `api/` to confirm reachability and review pending migrations before applying them.
+
+Supabase-managed extensions may exist outside this repository's Prisma migration history. If `prisma migrate dev` reports drift for those extensions, do not run `prisma migrate reset`; it would drop the schema. Keep schema changes in reviewed migration files and use `npx prisma migrate deploy` to apply the committed migrations.

@@ -1,36 +1,7 @@
-import Link from 'next/link';
 import { ApiError } from '@/lib/api';
+import { ProductCard } from '@/components/ProductCard';
 import { getHomeProducts, type StoreProduct } from '@/lib/products';
-
-function ProductCard({ product }: { product: StoreProduct }) {
-  return (
-    <article className="product-card">
-      <Link
-        className="product-card__image-link"
-        href={`/product/${encodeURIComponent(product.id)}`}
-      >
-        {product.thumbnailUrl ? (
-          <img className="product-card__image" src={product.thumbnailUrl} alt="" loading="lazy" />
-        ) : (
-          <span className="product-card__image-placeholder" aria-hidden="true">
-            Brightshelf
-          </span>
-        )}
-        <span className="sr-only">View {product.title}</span>
-      </Link>
-      <p className="product-card__category">{product.category}</p>
-      <h3>
-        <Link href={`/product/${encodeURIComponent(product.id)}`}>{product.title}</Link>
-      </h3>
-      <p className="product-card__price">
-        {new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(product.price)}
-      </p>
-    </article>
-  );
-}
+import Link from 'next/link';
 
 export default async function HomePage() {
   let products: StoreProduct[] = [];
@@ -87,7 +58,7 @@ export default async function HomePage() {
             ))}
           </div>
         ) : (
-          <p className="section-note">Categories will appear here when the catalog is connected.</p>
+          <p className="section-note">Categories will appear here when products are added.</p>
         )}
       </section>
 
