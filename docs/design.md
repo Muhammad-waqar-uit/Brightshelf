@@ -12,6 +12,19 @@ Brightshelf is a compact general merchandise shop. The interface should make the
 - Use catalogue facts as supplied. Do not invent ratings, stock, discounts, shipping promises, or review content.
 - Identify checkout payment as simulated. Do not collect real card details.
 
+## Responsive layout guidance
+
+The reference captures in `docs/reference/mobile/` and `docs/reference/web/` show useful layout patterns, not assets or styling to copy. Ignore browser chrome and retailer branding in the captures. Keep Brightshelf's own identity, wording, colors, and product imagery.
+
+- Start with the narrow viewport. Keep the mobile header compact, put search on its own full-width row, and let secondary navigation scroll horizontally rather than widen the page.
+- Use two-column discovery tiles and product cards on phones where the content remains legible. Use horizontal scrolling only for intentional rails, with clear section headings and links to the full result page.
+- Stack product information and purchase controls on phones, keeping the image, factual details, price, quantity, and primary action easy to scan.
+- Stack checkout sections and the order summary on narrow screens. On wider screens, place the summary beside the address, payment, and review sections.
+- On desktop, use the available width for richer navigation and catalogue density. Search results may use a filter rail beside results; product detail may use separate image, information, and purchase areas.
+- Let home sections and footer columns flow from multiple columns on desktop to fewer columns on mobile. Forms should remain a readable, bounded width.
+- Prevent page-level horizontal overflow. Any horizontal carousel or navigation rail must be intentional, keyboard-operable, and visually distinguishable from clipped content.
+- Use the existing Tailwind responsive utilities and theme tokens. Do not introduce scattered color literals or fixed widths that force small screens to scroll sideways.
+
 ## Screens and customer flow
 
 ### Storefront and home
@@ -75,6 +88,23 @@ Supabase Storage is an available service only. The approved product has no image
 4. The web layer renders the result or a visible error state.
 
 Product, price, cart, and order values returned by the API are authoritative. Do not put per-user data in a shared cache. Shared catalogue reads may be revalidated; mutations that affect visible cached data must invalidate the relevant entries.
+
+## API and UI slice gate
+
+Every customer-facing page or interactive feature must ship with its required API contract in the same roadmap slice, or consume a verified API contract completed by the foundation. Do not mark a slice complete with fixture-only data or a frontend control that has no working server behavior.
+
+| Phase                    | API responsibility delivered with the web behavior                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Step-05 Foundation       | Health endpoint, migrated catalogue schema, source-approved seed/import, and bounded catalogue reads needed by the first storefront slice. |
+| S1 Storefront and home   | Catalogue-backed home/category reads and the matching server-rendered web caller.                                                          |
+| S2 Search and categories | Validated search/category/filter/sort/page query contract, bounded result response, and URL-driven web caller.                             |
+| S3 Product detail        | Product-by-ID read and not-found/error behavior; cart mutation is delivered in S4.                                                         |
+| S4 Cart                  | Guest persistence plus server-validated cart API for account carts and any guest-cart merge.                                               |
+| S5 Account access        | Email and Google challenge/callback/session API, verification and rate-limit behavior, and protected-route callers.                        |
+| S6 Checkout and orders   | Address/order validation, server-calculated order creation, cart clearing after success, and owner-checked list/detail reads.              |
+| S7 Passkeys              | Optional WebAuthn ceremony/credential API and the corresponding sign-in UI, only after the core journey.                                   |
+
+For each phase, add or update API validation and service tests before or with the web integration tests. Review both API and web callers when a route changes, and update `docs/design.md` if the externally visible contract changes. Validate loading, empty, error, and responsive states against narrow and wide viewports before calling the slice done.
 
 ## Slice delivery and acceptance
 

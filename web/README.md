@@ -15,4 +15,4 @@ Next.js App Router application using TypeScript, Tailwind CSS, and ESLint.
 
 From the repository root, run `npm run dev --workspace web`, `npm run lint --workspace web`, `npm test --workspace web`, or `npm run build --workspace web`.
 
-Set `API_URL` for server-side API requests. The web server defaults to `http://localhost:3000`.
+For local configuration, run `Copy-Item web\.env.example web\.env.local` from the repository root. `API_URL` is used only by server-side requests and defaults to `http://localhost:4000`; the web server defaults to `http://localhost:3000`. Never put database credentials or server-only secrets in `NEXT_PUBLIC_` variables.
