@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ApiError } from '@/lib/api';
 import { getProduct, type StoreProduct } from '@/lib/products';
+import { AddToCart } from '@/components/AddToCart';
 
 function ProductDetails({ product }: { product: StoreProduct }) {
   const primaryImage = product.thumbnailUrl ?? product.images[0] ?? null;
@@ -56,9 +57,7 @@ function ProductDetails({ product }: { product: StoreProduct }) {
           <h2>About this product</h2>
           <p>{product.description}</p>
         </div>
-        <p className="product-detail__cart-note">
-          Cart actions will be available in the next shopping step.
-        </p>
+        <AddToCart productId={product.id} />
       </section>
     </div>
   );

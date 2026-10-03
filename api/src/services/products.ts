@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 
-function serializeProduct(product: {
+export function serializeProduct(product: {
   id: string;
   title: string;
   description: string;

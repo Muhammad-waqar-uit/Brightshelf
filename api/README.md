@@ -21,7 +21,7 @@ From the repository root, run `npm run dev --workspace api`, `npm run lint --wor
 
 For local configuration, run `Copy-Item api\.env.example api\.env` from the repository root. Set `DATABASE_URL` to the Supabase transaction-pooler URI for application queries. Set `DIRECT_URL` to the Supabase session-pooler URI for Prisma migrations when the machine cannot reach Supabase's IPv6-only direct endpoint. Copy both URIs from the Supabase dashboard's Connect panel; do not guess the pooler host or share the passwords. For the transaction pooler, use the port and query options supplied by Supabase for Prisma. The API port defaults to 4000 and the allowed web origin defaults to `http://localhost:3000`. Keep credentials in the ignored local file; never commit them.
 
-The local health endpoint is `http://localhost:4000/api/health`; catalogue endpoints are under `/api/products`. Vercel routes the public `/api/*` path to the Express service without removing that prefix. The initial product-catalogue migration has been applied to the configured Supabase database. Run `npx prisma migrate status` from `api/` to check migration state before future database work.
+The local health endpoint is `http://localhost:4000/api/health`; catalogue endpoints are under `/api/products`, and `POST /api/cart/quote` validates guest cart product IDs and quantities and returns current catalogue prices and totals. Vercel routes the public `/api/*` path to the Express service without removing that prefix. The initial product-catalogue migration has been applied to the configured Supabase database. Run `npx prisma migrate status` from `api/` to check migration state before future database work.
 
 ## Database connection troubleshooting
 
