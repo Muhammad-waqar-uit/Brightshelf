@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "npm run build --workspaces --if-present",
-    "prepare": "husky",
+    "prepare": "node scripts/prepare.mjs",
     "validate": "npm run typecheck --workspace api && npm run test --workspace api && npm run typecheck --workspace web && npm run lint --workspace web && npm run build --workspace web",
     "lint": "cd api && npx oxlint src/ && cd ../web && npx oxlint src/",
     "format": "prettier --write .",
