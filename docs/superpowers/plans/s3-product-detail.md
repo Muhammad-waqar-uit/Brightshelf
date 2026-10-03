@@ -8,7 +8,7 @@ Provide a useful, factual detail view for a catalogue item and connect it to the
 
 - Load a product by stable identifier through the web data layer and Express API.
 - Display only fields actually available in the approved seed data, including image, title, description, category, and current price.
-- Add a working add-to-cart control that passes the product identifier and requested quantity to S4 behavior.
+- Defer the working add-to-cart control to S4 so the product detail action ships with its API-backed cart behavior.
 - Give unavailable products an intentional not-found state and show failures clearly.
 - Use meaningful image alternatives and keep the layout usable at phone widths.
 
@@ -16,9 +16,9 @@ Provide a useful, factual detail view for a catalogue item and connect it to the
 
 - A seeded product renders accurate stored fields.
 - An unknown identifier returns a not-found experience.
-- Add-to-cart reports server success or failure without claiming success on errors.
 - No stock, review, discount, or delivery claim is fabricated.
-- Focused route and cart-integration tests pass.
+- Focused product-route and web data-layer tests pass.
+- S4 adds and tests the product detail add-to-cart action with the cart API.
 
 ## Not in this slice
 

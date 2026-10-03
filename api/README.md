@@ -6,7 +6,7 @@ Express API using TypeScript, Zod environment validation, and Prisma for Postgre
 
 - `src/app.ts`: Express middleware, health endpoint, route mounting, and error handling.
 - `src/server.ts`: local HTTP listener.
-- `src/routes/`: products, cart, auth, and orders route placeholders.
+- `src/routes/`: bounded product list/detail endpoints and cart, auth, and orders route groups.
 - `src/controllers/`: request handlers.
 - `src/services/`: application services.
 - `src/middleware/`: Express middleware.

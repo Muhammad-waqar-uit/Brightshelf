@@ -9,6 +9,7 @@ vi.mock('./lib/prisma', () => ({
     product: {
       count: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
   },
 }));
@@ -32,6 +33,7 @@ describe('GET /products', () => {
   beforeEach(() => {
     vi.mocked(prisma.product.count).mockReset();
     vi.mocked(prisma.product.findMany).mockReset();
+    vi.mocked(prisma.product.findUnique).mockReset();
   });
 
   it('returns a filtered, bounded page with numeric prices and pagination', async () => {
@@ -178,5 +180,61 @@ describe('GET /products', () => {
         message: 'The product catalog is temporarily unavailable',
       },
     });
+  });
+
+  it('returns one product by stable ID with a numeric price', async () => {
+    vi.mocked(prisma.product.findUnique).mockResolvedValue(sampleProduct);
+
+    const response = await request(app).get('/products/product-1');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      product: {
+        id: 'product-1',
+        title: 'Desk Lamp',
+        description: 'A compact desk lamp.',
+        category: 'lighting',
+        price: 24.5,
+        thumbnailUrl: 'https://images.example.test/lamp.jpg',
+        images: ['https://images.example.test/lamp.jpg'],
+        brand: 'Northlight',
+      },
+    });
+    expect(prisma.product.findUnique).toHaveBeenCalledWith({
+      where: { id: 'product-1' },
+    });
+  });
+
+  it('returns a structured not-found response for an unknown product ID', async () => {
+    vi.mocked(prisma.product.findUnique).mockResolvedValue(null);
+
+    const response = await request(app).get('/products/unknown-product');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: {
+        code: 'PRODUCT_NOT_FOUND',
+        message: 'Product not found',
+      },
+    });
+  });
+
+  it('rejects an overlong product ID before querying the database', async () => {
+    const response = await request(app).get(`/products/${'x'.repeat(129)}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_PRODUCT_ID');
+    expect(prisma.product.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('returns an explicit unavailable response when the product read cannot connect', async () => {
+    vi.mocked(prisma.product.findUnique).mockRejectedValue(
+      new Prisma.PrismaClientInitializationError('database unavailable', '6.19.3'),
+    );
+
+    const response = await request(app).get('/products/product-1');
+
+    expect(response.status).toBe(503);
+    expect(response.body.error.code).toBe('CATALOG_UNAVAILABLE');
   });
 });

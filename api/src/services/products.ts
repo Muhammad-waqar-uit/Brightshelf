@@ -1,5 +1,27 @@
 import { prisma } from '../lib/prisma';
 
+function serializeProduct(product: {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  price: { toNumber: () => number };
+  thumbnailUrl: string | null;
+  images: string[];
+  brand: string | null;
+}) {
+  return {
+    id: product.id,
+    title: product.title,
+    description: product.description,
+    category: product.category,
+    price: product.price.toNumber(),
+    thumbnailUrl: product.thumbnailUrl,
+    images: product.images,
+    brand: product.brand,
+  };
+}
+
 export interface ProductSearch {
   q?: string;
   category?: string;
@@ -50,16 +72,7 @@ export async function listProducts(search: ProductSearch) {
   });
 
   return {
-    products: products.map((product) => ({
-      id: product.id,
-      title: product.title,
-      description: product.description,
-      category: product.category,
-      price: Number(product.price),
-      thumbnailUrl: product.thumbnailUrl,
-      images: product.images,
-      brand: product.brand,
-    })),
+    products: products.map(serializeProduct),
     pagination: {
       page,
       limit: search.limit,
@@ -67,4 +80,9 @@ export async function listProducts(search: ProductSearch) {
       totalPages,
     },
   };
+}
+
+export async function getProduct(id: string) {
+  const product = await prisma.product.findUnique({ where: { id } });
+  return product ? serializeProduct(product) : null;
 }

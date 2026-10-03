@@ -21,6 +21,10 @@ export interface ProductListResponse {
   };
 }
 
+export interface ProductResponse {
+  product: StoreProduct;
+}
+
 export interface ProductSearchParams {
   q?: string;
   category?: string;
@@ -46,4 +50,8 @@ export function getProducts(params: ProductSearchParams = {}): Promise<ProductLi
 
 export function getHomeProducts(): Promise<ProductListResponse> {
   return apiFetch<ProductListResponse>('/products?limit=8');
+}
+
+export function getProduct(id: string): Promise<ProductResponse> {
+  return apiFetch<ProductResponse>(`/products/${encodeURIComponent(id)}`);
 }

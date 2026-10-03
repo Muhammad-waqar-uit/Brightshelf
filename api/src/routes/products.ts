@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { listProducts } from '../services/products';
+import { getProduct, listProducts } from '../services/products';
 
 const router = Router();
 const productListQuerySchema = z
@@ -48,6 +48,45 @@ router.get('/', async (request, response, next) => {
   try {
     const result = await listProducts(query.data);
     response.json(result);
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      response.status(503).json({
+        error: {
+          code: 'CATALOG_UNAVAILABLE',
+          message: 'The product catalog is temporarily unavailable',
+        },
+      });
+      return;
+    }
+
+    next(error);
+  }
+});
+
+router.get('/:id', async (request, response, next) => {
+  const id = z.string().min(1).max(128).safeParse(request.params.id);
+  if (!id.success) {
+    response.status(400).json({
+      error: {
+        code: 'INVALID_PRODUCT_ID',
+        message: 'Product ID must be between 1 and 128 characters',
+      },
+    });
+    return;
+  }
+
+  try {
+    const product = await getProduct(id.data);
+    if (!product) {
+      response.status(404).json({
+        error: {
+          code: 'PRODUCT_NOT_FOUND',
+          message: 'Product not found',
+        },
+      });
+      return;
+    }
+    response.json({ product });
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientInitializationError) {
       response.status(503).json({

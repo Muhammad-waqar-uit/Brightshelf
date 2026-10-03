@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getHomeProducts, getProducts } from './products';
+import { getHomeProducts, getProduct, getProducts } from './products';
 
 describe('getHomeProducts', () => {
   afterEach(() => {
@@ -63,6 +63,24 @@ describe('getHomeProducts', () => {
         '/products?q=desk+lamp&category=home+decor&minPrice=10&maxPrice=50&sort=price-asc&page=2',
         'http://localhost:4000',
       ),
+      undefined,
+    );
+  });
+
+  it('requests a product by an encoded stable identifier', async () => {
+    vi.stubEnv('API_URL', 'http://localhost:4000');
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ product: { id: 'item/a' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getProduct('item/a');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL('/products/item%2Fa', 'http://localhost:4000'),
       undefined,
     );
   });
