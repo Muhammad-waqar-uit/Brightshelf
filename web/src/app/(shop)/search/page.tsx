@@ -1,8 +1,14 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { ProductCard } from '@/components/ProductCard';
+import { DemoCatalogNotice } from '@/components/DemoCatalogNotice';
 import { ApiError } from '@/lib/api';
-import { getProducts, type ProductSearchParams, type ProductListResponse } from '@/lib/products';
+import {
+  getProductCategories,
+  getProducts,
+  type ProductSearchParams,
+  type ProductListResponse,
+} from '@/lib/products';
 
 type SearchPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -34,6 +40,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     page: getValue('page'),
   };
   let result: ProductListResponse | null = null;
+  let categories: string[] = [];
   let errorMessage: string | null = null;
 
   if (repeatedParameter) {
@@ -41,7 +48,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       'A search parameter was provided more than once. Remove the duplicate and retry.';
   } else {
     try {
-      result = await getProducts(params);
+      const [productResult, categoryResult] = await Promise.all([
+        getProducts(params),
+        getProductCategories(),
+      ]);
+      result = productResult;
+      categories = categoryResult.categories;
     } catch (error: unknown) {
       if (error instanceof ApiError && error.status === 400) {
         errorMessage = 'Some search filters are invalid. Check the price range and sort order.';
@@ -127,6 +139,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <div className="search-page">
+      <DemoCatalogNotice />
       <header className="search-page__heading">
         <p className="eyebrow">Explore Brightshelf</p>
         <h1>{heading}</h1>
@@ -146,14 +159,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </div>
         <div className="search-filters__field">
           <label htmlFor="product-category">Category</label>
-          <input
-            id="product-category"
-            name="category"
-            type="text"
-            maxLength={80}
-            defaultValue={params.category}
-            placeholder="Enter a category"
-          />
+          <select id="product-category" name="category" defaultValue={params.category ?? ''}>
+            <option value="">All categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="search-filters__field">
           <label htmlFor="minimum-price">Minimum price</label>

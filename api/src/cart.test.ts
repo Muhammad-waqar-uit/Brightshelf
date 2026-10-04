@@ -24,6 +24,9 @@ const products = [
     thumbnailUrl: 'https://images.example.test/lamp.jpg',
     images: ['https://images.example.test/lamp.jpg'],
     brand: 'Northlight',
+    sellerId: null,
+    listingStatus: 'PUBLISHED' as const,
+    stock: 10,
     createdAt: new Date('2026-10-03T00:00:00.000Z'),
     updatedAt: new Date('2026-10-03T00:00:00.000Z'),
   },
@@ -38,6 +41,9 @@ const products = [
     thumbnailUrl: null,
     images: [],
     brand: null,
+    sellerId: null,
+    listingStatus: 'PUBLISHED' as const,
+    stock: 10,
     createdAt: new Date('2026-10-03T00:00:00.000Z'),
     updatedAt: new Date('2026-10-03T00:00:00.000Z'),
   },
@@ -66,6 +72,8 @@ describe('POST /api/cart/quote', () => {
         {
           product: {
             id: 'product-1',
+            isSyntheticDemo: false,
+            syntheticCheckoutEnabled: false,
             title: 'Desk Lamp',
             description: 'A compact desk lamp.',
             category: 'lighting',
@@ -73,6 +81,8 @@ describe('POST /api/cart/quote', () => {
             thumbnailUrl: 'https://images.example.test/lamp.jpg',
             images: ['https://images.example.test/lamp.jpg'],
             brand: 'Northlight',
+            stock: 10,
+            sellerName: null,
           },
           quantity: 2,
           lineTotal: 49,
@@ -80,6 +90,8 @@ describe('POST /api/cart/quote', () => {
         {
           product: {
             id: 'product-2',
+            isSyntheticDemo: false,
+            syntheticCheckoutEnabled: false,
             title: 'Notebook',
             description: 'A lined notebook.',
             category: 'stationery',
@@ -87,6 +99,8 @@ describe('POST /api/cart/quote', () => {
             thumbnailUrl: null,
             images: [],
             brand: null,
+            stock: 10,
+            sellerName: null,
           },
           quantity: 3,
           lineTotal: 11.97,
@@ -98,6 +112,7 @@ describe('POST /api/cart/quote', () => {
     });
     expect(prisma.product.findMany).toHaveBeenCalledWith({
       where: { id: { in: ['product-1', 'product-2'] } },
+      include: { seller: { select: { displayName: true, userId: true } } },
     });
   });
 
@@ -117,6 +132,51 @@ describe('POST /api/cart/quote', () => {
     expect(response.body.unavailableProductIds).toEqual(['removed-item']);
     expect(response.body.itemCount).toBe(1);
     expect(response.body.subtotal).toBe(24.5);
+  });
+
+  it('does not quote an unpublished seller listing', async () => {
+    vi.mocked(prisma.product.findMany).mockResolvedValue([
+      {
+        ...products[0],
+        sellerId: 'seller-1',
+        listingStatus: 'DRAFT',
+        stock: 1,
+      },
+    ]);
+
+    const response = await request(app)
+      .post('/api/cart/quote')
+      .send({ items: [{ productId: 'product-1', quantity: 1 }] });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      items: [],
+      unavailableProductIds: ['product-1'],
+      itemCount: 0,
+      subtotal: 0,
+    });
+  });
+
+  it('quotes a published seller listing with its seller name and current stock', async () => {
+    vi.mocked(prisma.product.findMany).mockResolvedValue([
+      {
+        ...products[0],
+        sellerId: 'seller-1',
+        seller: { displayName: 'Bright Shelf Studio' },
+        listingStatus: 'PUBLISHED',
+        stock: 4,
+      },
+    ] as never);
+
+    const response = await request(app)
+      .post('/api/cart/quote')
+      .send({ items: [{ productId: 'product-1', quantity: 1 }] });
+
+    expect(response.status).toBe(200);
+    expect(response.body.items[0].product).toMatchObject({
+      sellerName: 'Bright Shelf Studio',
+      stock: 4,
+    });
   });
 
   it('returns an empty quote without querying products', async () => {

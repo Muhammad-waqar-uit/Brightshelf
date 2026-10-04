@@ -9,6 +9,11 @@ export interface StoreProduct {
   thumbnailUrl: string | null;
   images: string[];
   brand: string | null;
+  stock?: number | null;
+  sellerName?: string | null;
+  isOwnListing?: boolean;
+  isSyntheticDemo?: boolean;
+  syntheticCheckoutEnabled?: boolean;
 }
 
 export interface ProductListResponse {
@@ -23,6 +28,10 @@ export interface ProductListResponse {
 
 export interface ProductResponse {
   product: StoreProduct;
+}
+
+export interface ProductCategoriesResponse {
+  categories: string[];
 }
 
 export interface ProductSearchParams {
@@ -50,6 +59,10 @@ export function getProducts(params: ProductSearchParams = {}): Promise<ProductLi
 
 export function getHomeProducts(): Promise<ProductListResponse> {
   return apiFetch<ProductListResponse>('/api/products?limit=8');
+}
+
+export function getProductCategories(): Promise<ProductCategoriesResponse> {
+  return apiFetch<ProductCategoriesResponse>('/api/products/categories');
 }
 
 export function getProduct(id: string): Promise<ProductResponse> {

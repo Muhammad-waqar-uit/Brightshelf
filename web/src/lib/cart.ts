@@ -30,6 +30,14 @@ export interface GuestCartQuote {
 }
 
 export const GUEST_CART_STORAGE_KEY = 'brightshelf.guest-cart.v1';
+export const GUEST_CART_MERGE_STORAGE_KEY = 'brightshelf.guest-cart-merge.v1';
+
+const pendingMergeSchema = z
+  .object({
+    snapshot: z.string(),
+    idempotencyKey: z.string().uuid(),
+  })
+  .strict();
 
 export function parseGuestCart(value: string | null): GuestCartEntry[] {
   if (value === null) {
@@ -46,4 +54,23 @@ export function readGuestCart(): GuestCartEntry[] {
 export function writeGuestCart(items: GuestCartEntry[]): void {
   const safeItems = guestCartSchema.parse(items);
   window.localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(safeItems));
+  window.localStorage.removeItem(GUEST_CART_MERGE_STORAGE_KEY);
+}
+
+export function getGuestCartMergeKey(items: GuestCartEntry[]): string {
+  const snapshot = JSON.stringify(guestCartSchema.parse(items));
+  const storedValue = window.localStorage.getItem(GUEST_CART_MERGE_STORAGE_KEY);
+  if (storedValue !== null) {
+    const pendingMerge = pendingMergeSchema.parse(JSON.parse(storedValue));
+    if (pendingMerge.snapshot === snapshot) {
+      return pendingMerge.idempotencyKey;
+    }
+  }
+
+  const idempotencyKey = window.crypto.randomUUID();
+  window.localStorage.setItem(
+    GUEST_CART_MERGE_STORAGE_KEY,
+    JSON.stringify({ snapshot, idempotencyKey }),
+  );
+  return idempotencyKey;
 }

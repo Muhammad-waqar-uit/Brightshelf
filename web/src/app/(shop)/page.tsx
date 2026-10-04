@@ -1,16 +1,23 @@
 import { ApiError } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
-import { getHomeProducts, type StoreProduct } from '@/lib/products';
+import { DemoCatalogNotice } from '@/components/DemoCatalogNotice';
+import { getHomeProducts, getProductCategories, type StoreProduct } from '@/lib/products';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   let products: StoreProduct[] = [];
+  let categories: string[] = [];
   let errorMessage: string | null = null;
 
   try {
-    ({ products } = await getHomeProducts());
+    const [homeProducts, categoryResult] = await Promise.all([
+      getHomeProducts(),
+      getProductCategories(),
+    ]);
+    products = homeProducts.products;
+    categories = categoryResult.categories;
   } catch (error: unknown) {
     if (error instanceof ApiError) {
       errorMessage = `The catalog service returned an error (${error.status}).`;
@@ -19,10 +26,9 @@ export default async function HomePage() {
     }
   }
 
-  const categories = [...new Set(products.map((product) => product.category))];
-
   return (
     <div className="store-home">
+      <DemoCatalogNotice />
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-hero__content">
           <p className="eyebrow">A little more room for good finds</p>

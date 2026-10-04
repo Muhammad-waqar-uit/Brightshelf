@@ -1,28 +1,34 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
   extensions = [pg_trgm]
 }
 
 model Product {
-  id           String   @id @default(cuid())
-  source       String
-  sourceId     String
-  title        String
-  description  String   @db.Text
-  category     String
-  price        Decimal  @db.Decimal(10, 2)
-  thumbnailUrl String?
-  images       String[] @default([])
-  brand        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String         @id @default(cuid())
+  source        String
+  sourceId      String
+  title         String
+  description   String         @db.Text
+  category      String
+  price         Decimal        @db.Decimal(10, 2)
+  thumbnailUrl  String?
+  images        String[]       @default([])
+  brand         String?
+  sellerId      String?
+  listingStatus ListingStatus  @default(PUBLISHED)
+  stock         Int            @default(0)
+  seller        SellerProfile? @relation(fields: [sellerId], references: [id], onDelete: Restrict)
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@unique([source, sourceId])
   @@index([category, price])
@@ -30,5 +36,192 @@ model Product {
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([brand(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([createdAt])
+  @@index([sellerId, listingStatus, createdAt])
   @@map("products")
+}
+
+enum ListingStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  sessions           Session[]
+  passkeys           PasskeyCredential[]
+  webAuthnChallenges WebAuthnChallenge[]
+  cart               Cart?
+  orders             Order[]
+  sellerProfile      SellerProfile?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model Session {
+  id         String            @id @default(cuid())
+  userId     String
+  authMethod SessionAuthMethod @default(EMAIL)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now())
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+enum SessionAuthMethod {
+  EMAIL
+  GOOGLE
+  PASSKEY
+}
+
+model PasskeyCredential {
+  id           String    @id @default(cuid())
+  userId       String
+  credentialId String    @unique
+  publicKey    Bytes
+  counter      BigInt    @default(0)
+  transports   String[]  @default([])
+  deviceType   String
+  backedUp     Boolean   @default(false)
+  label        String    @default("This device") @db.VarChar(80)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("passkey_credentials")
+}
+
+enum WebAuthnChallengeType {
+  REGISTER
+  AUTHENTICATE
+}
+
+model WebAuthnChallenge {
+  id            String                @id @default(cuid())
+  challengeHash String                @unique @db.VarChar(64)
+  type          WebAuthnChallengeType
+  userId        String?
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  createdAt     DateTime              @default(now())
+  user          User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId, type, createdAt])
+  @@index([type, consumedAt, expiresAt])
+  @@map("webauthn_challenges")
+}
+
+model SellerProfile {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  displayName String    @db.VarChar(80)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Cart {
+  id        String      @id @default(cuid())
+  userId    String      @unique
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  merges    CartMerge[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model CartMerge {
+  idempotencyKey     String   @id @db.Uuid
+  cartId             String
+  rejectedProductIds String[] @default([])
+  cart               Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  createdAt          DateTime @default(now())
+
+  @@index([cartId, createdAt])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([productId])
+}
+
+model Order {
+  id                    String      @id @default(cuid())
+  checkoutKey           String      @unique @db.Uuid
+  userId                String
+  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status                String      @default("PLACED")
+  paymentMethod         String      @default("SIMULATED")
+  paymentStatus         String      @default("NOT_REQUIRED")
+  stripeSessionId       String?     @unique
+  stockReserved         Boolean     @default(false)
+  reservationReleasedAt DateTime?
+  subtotal              Decimal     @db.Decimal(10, 2)
+  shipping              Decimal     @default(0) @db.Decimal(10, 2)
+  total                 Decimal     @db.Decimal(10, 2)
+  shippingName          String
+  shippingAddressLine1  String
+  shippingAddressLine2  String?
+  shippingCity          String
+  shippingRegion        String
+  shippingPostalCode    String
+  shippingCountry       String      @db.Char(2)
+  items                 OrderItem[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  productId    String?
+  productTitle String
+  quantity     Int
+  unitPrice    Decimal  @db.Decimal(10, 2)
+  lineTotal    Decimal  @db.Decimal(10, 2)
+  sellerId     String?
+  sellerName   String?
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([sellerId, orderId])
+}
+
+model StripeEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
+}
+
+model EmailChallenge {
+  id        String   @id @default(cuid())
+  email     String
+  tokenHash String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email, tokenHash])
 }
