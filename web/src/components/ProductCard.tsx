@@ -11,7 +11,7 @@ export function ProductCard({ product }: { product: StoreProduct }) {
           <img className="product-card__image" src={product.thumbnailUrl} alt="" loading="lazy" />
         ) : (
           <span className="product-card__image-placeholder" aria-hidden="true">
-            Brightshelf
+            No image supplied
           </span>
         )}
         <span className="sr-only">View {product.title}</span>
@@ -20,12 +20,16 @@ export function ProductCard({ product }: { product: StoreProduct }) {
       <h3>
         <Link href={productUrl}>{product.title}</Link>
       </h3>
+      {product.sellerName && <p className="product-card__seller">Sold by {product.sellerName}</p>}
       <p className="product-card__price">
         {new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: 'USD',
         }).format(product.price)}
       </p>
+      {product.sellerName && product.stock === 0 && (
+        <p className="product-card__availability">Currently out of stock</p>
+      )}
     </article>
   );
 }

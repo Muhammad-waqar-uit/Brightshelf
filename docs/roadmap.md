@@ -29,7 +29,12 @@
   - [todo] S4 Cart, persisted, guest cart allowed
   - [todo] S5 Email sign up and sign in with user choice of one-time email code or sign-in link, sent through Nodemailer and Gmail SMTP, plus Sign in with Google, protected routes
   - [todo] S6 Checkout with address and mock card payment, orders list and order detail
-  - [todo] S7 Passkeys with SimpleWebAuthn, offered next to Google and email on the sign-in page
+  - [todo] S8 Seller marketplace and Stripe buyer payments, delivered from `docs/superpowers/plans/s8-seller-marketplace-stripe-payments.md`:
+    - [done] S8.1 Seller profile and owner-scoped listing persistence API
+    - [done] S8.2 Seller dashboard and published listing storefront integration; local browser walkthrough verified activation, listing publication, storefront detail, and account-cart add
+    - [partial] S8.3 Stripe test-mode Checkout Sessions and signed webhooks; hosted Checkout redirect and signed CLI fixture delivery verified, but no paid-order webhook transition completed
+    - [partial] S8.4 Buyer payment status, seller sales view, and end-to-end verification; views are present, end-to-end payment remains
+  - [todo] S7 Optional passkeys with SimpleWebAuthn, deferred until after S8 and offered next to Google and email on the sign-in page
 - [todo] Step-07 Hardening: end-to-end tests of browse, search, product, cart, checkout, orders and all three sign-in methods, plus a mobile pass, bug fixing, deploy.
 - [todo] Step-08 README: what is built, how to run, live URL, trade-offs, how AI was used, and a five minute walkthrough outline that states what was left out and why.
 - [todo] Step-09 Pre-submit check: live link opens signed out, repo is public, .agent-logs/ is committed, links labelled.

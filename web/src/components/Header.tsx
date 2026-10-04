@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import HeaderAccount from '@/components/HeaderAccount';
 
 const navigation = [
   { href: '/', label: 'Home' },
@@ -24,10 +25,7 @@ export default function Header() {
           </button>
         </form>
 
-        <div className="site-header__account">
-          <Link href="/sign-in">Sign in</Link>
-          <Link href="/cart">Cart</Link>
-        </div>
+        <HeaderAccount />
       </div>
 
       <nav className="site-nav" aria-label="Main navigation">
@@ -36,7 +34,6 @@ export default function Header() {
             {item.label}
           </Link>
         ))}
-        <Link href="/register">Create account</Link>
       </nav>
     </header>
   );

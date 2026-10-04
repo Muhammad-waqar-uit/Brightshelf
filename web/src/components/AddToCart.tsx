@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
-import { quoteGuestCart } from '@/actions/cart';
+import { addAccountCartItem, quoteGuestCart } from '@/actions/cart';
 import { readGuestCart, writeGuestCart } from '@/lib/cart';
+import { dispatchCartCount } from '@/lib/cartEvents';
 
-export function AddToCart({ productId }: { productId: string }) {
+export function AddToCart({ productId, stock }: { productId: string; stock?: number | null }) {
   const [quantity, setQuantity] = useState(1);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -18,6 +19,18 @@ export function AddToCart({ productId }: { productId: string }) {
     setAdded(false);
 
     try {
+      const accountQuote = await addAccountCartItem({ productId, quantity });
+      if (accountQuote) {
+        setAdded(true);
+        setMessage(
+          stock === undefined || stock === null
+            ? 'Added to your demo cart.'
+            : 'Added to your cart.',
+        );
+        dispatchCartCount(accountQuote.itemCount);
+        return;
+      }
+
       const currentItems = readGuestCart();
       const existing = currentItems.find((item) => item.productId === productId);
       if (!existing && currentItems.length >= 50) {
@@ -45,7 +58,8 @@ export function AddToCart({ productId }: { productId: string }) {
 
       writeGuestCart(nextItems);
       setAdded(true);
-      setMessage('Added to your cart.');
+      setMessage('Added to your demo cart.');
+      dispatchCartCount(quote.itemCount);
     } catch {
       setMessage('We could not update your cart. Please try again.');
     } finally {
@@ -61,14 +75,20 @@ export function AddToCart({ productId }: { productId: string }) {
           id={`quantity-${productId}`}
           type="number"
           min={1}
-          max={99}
+          max={stock === undefined || stock === null ? 99 : Math.min(stock, 99)}
           step={1}
           value={quantity}
           onChange={(event) => setQuantity(Number(event.currentTarget.value))}
           required
         />
-        <button className="button button--primary" type="submit" disabled={pending}>
-          {pending ? 'Adding...' : 'Add to cart'}
+        <button className="button button--primary" type="submit" disabled={pending || stock === 0}>
+          {pending
+            ? 'Adding...'
+            : stock === 0
+              ? 'Out of stock'
+              : stock === undefined || stock === null
+                ? 'Add demo item to cart'
+                : 'Add to cart'}
         </button>
       </form>
       {message && (
@@ -83,7 +103,7 @@ export function AddToCart({ productId }: { productId: string }) {
       )}
       {added && (
         <Link className="text-link" href="/cart">
-          View cart
+          {stock === undefined || stock === null ? 'View demo cart' : 'View cart'}
         </Link>
       )}
     </div>

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { getProduct, listProducts } from '../services/products';
+import { getProduct, getProductCategories, listProducts } from '../services/products';
 
 const router = Router();
 const productListQuerySchema = z
@@ -48,6 +48,25 @@ router.get('/', async (request, response, next) => {
   try {
     const result = await listProducts(query.data);
     response.json(result);
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      response.status(503).json({
+        error: {
+          code: 'CATALOG_UNAVAILABLE',
+          message: 'The product catalog is temporarily unavailable',
+        },
+      });
+      return;
+    }
+
+    next(error);
+  }
+});
+
+router.get('/categories', async (_request, response, next) => {
+  try {
+    const categories = await getProductCategories();
+    response.json({ categories });
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientInitializationError) {
       response.status(503).json({

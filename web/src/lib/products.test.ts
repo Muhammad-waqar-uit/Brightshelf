@@ -1,10 +1,36 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getHomeProducts, getProduct, getProducts } from './products';
+import { getHomeProducts, getProduct, getProductCategories, getProducts } from './products';
 
 describe('getHomeProducts', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+  });
+
+  describe('getProductCategories', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    });
+
+    it('requests catalogue categories through the API', async () => {
+      vi.stubEnv('API_URL', 'http://localhost:4000');
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ categories: ['Garden', 'Lighting'] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(getProductCategories()).resolves.toEqual({
+        categories: ['Garden', 'Lighting'],
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        new URL('/api/products/categories', 'http://localhost:4000'),
+        undefined,
+      );
+    });
   });
 
   it('requests the bounded home catalogue through the server API', async () => {

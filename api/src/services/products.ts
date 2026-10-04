@@ -1,7 +1,11 @@
+import { Prisma } from '@prisma/client';
+import { env } from '../lib/env';
 import { prisma } from '../lib/prisma';
+import { demoProductSource } from '../lib/demoCatalog';
 
 export function serializeProduct(product: {
   id: string;
+  source: string;
   title: string;
   description: string;
   category: string;
@@ -9,9 +13,17 @@ export function serializeProduct(product: {
   thumbnailUrl: string | null;
   images: string[];
   brand: string | null;
+  sellerId?: string | null;
+  stock?: number;
+  seller?: { displayName: string } | null;
 }) {
   return {
     id: product.id,
+    isSyntheticDemo: product.source === demoProductSource,
+    syntheticCheckoutEnabled:
+      product.source === demoProductSource &&
+      env.ALLOW_SYNTHETIC_CHECKOUT &&
+      env.NODE_ENV !== 'production',
     title: product.title,
     description: product.description,
     category: product.category,
@@ -19,6 +31,8 @@ export function serializeProduct(product: {
     thumbnailUrl: product.thumbnailUrl,
     images: product.images,
     brand: product.brand,
+    stock: product.source === demoProductSource ? null : (product.stock ?? null),
+    sellerName: product.seller?.displayName ?? null,
   };
 }
 
@@ -33,16 +47,23 @@ export interface ProductSearch {
 }
 
 export async function listProducts(search: ProductSearch) {
-  const where = {
+  const where: Prisma.ProductWhereInput = {
+    AND: [
+      {
+        OR: [{ sellerId: null }, { sellerId: { not: null }, listingStatus: 'PUBLISHED' as const }],
+      },
+      ...(search.q
+        ? [
+            {
+              OR: [
+                { title: { contains: search.q, mode: 'insensitive' as const } },
+                { brand: { contains: search.q, mode: 'insensitive' as const } },
+              ],
+            },
+          ]
+        : []),
+    ],
     ...(search.category ? { category: search.category } : {}),
-    ...(search.q
-      ? {
-          OR: [
-            { title: { contains: search.q, mode: 'insensitive' as const } },
-            { brand: { contains: search.q, mode: 'insensitive' as const } },
-          ],
-        }
-      : {}),
     ...(search.minPrice !== undefined || search.maxPrice !== undefined
       ? {
           price: {
@@ -69,6 +90,7 @@ export async function listProducts(search: ProductSearch) {
     orderBy: orderedBy,
     skip: (page - 1) * search.limit,
     take: search.limit,
+    include: { seller: { select: { displayName: true } } },
   });
 
   return {
@@ -83,6 +105,24 @@ export async function listProducts(search: ProductSearch) {
 }
 
 export async function getProduct(id: string) {
-  const product = await prisma.product.findUnique({ where: { id } });
+  const product = await prisma.product.findFirst({
+    where: {
+      id,
+      OR: [{ sellerId: null }, { sellerId: { not: null }, listingStatus: 'PUBLISHED' as const }],
+    },
+    include: { seller: { select: { displayName: true } } },
+  });
   return product ? serializeProduct(product) : null;
+}
+
+export async function getProductCategories() {
+  const categories = await prisma.product.findMany({
+    where: {
+      OR: [{ sellerId: null }, { sellerId: { not: null }, listingStatus: 'PUBLISHED' as const }],
+    },
+    distinct: ['category'],
+    orderBy: { category: 'asc' },
+    select: { category: true },
+  });
+  return categories.map(({ category }) => category);
 }
