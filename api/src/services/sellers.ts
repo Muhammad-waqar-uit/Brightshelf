@@ -8,6 +8,8 @@ export interface SellerListingInput {
   category: string;
   priceCents: number;
   stock: number;
+  thumbnailUrl?: string | null;
+  images?: string[];
 }
 
 export interface SellerListingUpdate {
@@ -16,6 +18,8 @@ export interface SellerListingUpdate {
   category?: string;
   priceCents?: number;
   stock?: number;
+  thumbnailUrl?: string | null;
+  images?: string[];
 }
 
 export async function activateSeller(userId: string, displayName: string) {
@@ -103,6 +107,8 @@ function serializeSellerListing(product: {
   price: Prisma.Decimal;
   stock: number;
   listingStatus: string;
+  thumbnailUrl: string | null;
+  images: string[];
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -127,6 +133,8 @@ export async function createSellerListing(sellerId: string, input: SellerListing
         category: input.category,
         price: new Prisma.Decimal(input.priceCents).dividedBy(100),
         stock: input.stock,
+        thumbnailUrl: input.thumbnailUrl ?? null,
+        images: input.images ?? [],
       },
       select: {
         id: true,
@@ -136,6 +144,8 @@ export async function createSellerListing(sellerId: string, input: SellerListing
         price: true,
         stock: true,
         listingStatus: true,
+        thumbnailUrl: true,
+        images: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -156,6 +166,8 @@ export async function updateSellerListing(
       ? { price: new Prisma.Decimal(input.priceCents).dividedBy(100) }
       : {}),
     ...(input.stock !== undefined ? { stock: input.stock } : {}),
+    ...(input.thumbnailUrl !== undefined ? { thumbnailUrl: input.thumbnailUrl } : {}),
+    ...(input.images !== undefined ? { images: input.images } : {}),
   };
   const changed = await prisma.product.updateMany({
     where: { id: productId, sellerId, listingStatus: { not: 'ARCHIVED' } },
@@ -174,6 +186,8 @@ export async function updateSellerListing(
       price: true,
       stock: true,
       listingStatus: true,
+      thumbnailUrl: true,
+      images: true,
       createdAt: true,
       updatedAt: true,
     },

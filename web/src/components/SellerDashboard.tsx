@@ -21,6 +21,11 @@ function listingInput(form: HTMLFormElement) {
     category: String(data.get('category') ?? ''),
     price: String(data.get('price') ?? ''),
     stock: Number(data.get('stock')),
+    thumbnailUrl: String(data.get('thumbnailUrl') ?? ''),
+    images: String(data.get('images') ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
   };
 }
 
@@ -83,6 +88,28 @@ function ListingFields({ listing }: { listing?: SellerListing }) {
           />
         </div>
       </div>
+      <div className="seller-form__row">
+        <div>
+          <label htmlFor={`${prefix}-thumbnailUrl`}>Thumbnail URL (HTTPS)</label>
+          <input
+            id={`${prefix}-thumbnailUrl`}
+            name="thumbnailUrl"
+            type="url"
+            defaultValue={listing?.thumbnailUrl ?? ''}
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
+      </div>
+      <label htmlFor={`${prefix}-images`}>
+        Additional images (HTTPS URLs, comma-separated, max 8)
+      </label>
+      <input
+        id={`${prefix}-images`}
+        name="images"
+        type="text"
+        defaultValue={listing?.images?.join(', ') ?? ''}
+        placeholder="https://example.com/img1.jpg, https://example.com/img2.jpg"
+      />
     </>
   );
 }
@@ -112,7 +139,7 @@ export function SellerDashboard({
         ? { kind: 'success', message: 'Your seller profile is ready.' }
         : { kind: 'error', message: result.message },
     );
-    if (result.ok) router.refresh();
+    if (result.ok) router.push('/seller');
   }
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
@@ -239,6 +266,18 @@ export function SellerDashboard({
         <div className="seller-listings">
           {products.map((product) => (
             <article className="seller-listing" key={product.id}>
+              <div className="seller-listing__preview">
+                {product.thumbnailUrl ? (
+                  <img
+                    src={product.thumbnailUrl}
+                    alt={product.title}
+                    className="seller-listing__image"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="seller-listing__image-placeholder">No image</div>
+                )}
+              </div>
               <div className="seller-listing__heading">
                 <div>
                   <h2>{product.title}</h2>

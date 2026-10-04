@@ -6,6 +6,13 @@ import { z } from 'zod';
 type SellerActionResult = { ok: true } | { ok: false; message: string };
 
 const profileSchema = z.object({ displayName: z.string().trim().min(1).max(80) }).strict();
+const httpsUrl = z
+  .string()
+  .url()
+  .refine((value) => new URL(value).protocol === 'https:')
+  .nullable()
+  .optional();
+
 const listingSchema = z
   .object({
     title: z.string().trim().min(1).max(160),
@@ -13,6 +20,8 @@ const listingSchema = z
     category: z.string().trim().min(1).max(80),
     price: z.string().regex(/^\d{1,6}(?:\.\d{1,2})?$/),
     stock: z.number().int().min(0).max(1_000_000),
+    thumbnailUrl: httpsUrl,
+    images: z.array(httpsUrl).max(8).default([]),
   })
   .strict();
 
@@ -80,6 +89,8 @@ export async function createSellerListingAction(input: unknown): Promise<SellerA
     category: parsed.data.category,
     priceCents: Math.round(Number(parsed.data.price) * 100),
     stock: parsed.data.stock,
+    thumbnailUrl: parsed.data.thumbnailUrl,
+    images: parsed.data.images,
   });
 }
 
@@ -101,6 +112,8 @@ export async function updateSellerListingAction(
     category: parsed.data.category,
     priceCents: Math.round(Number(parsed.data.price) * 100),
     stock: parsed.data.stock,
+    thumbnailUrl: parsed.data.thumbnailUrl,
+    images: parsed.data.images,
   });
 }
 

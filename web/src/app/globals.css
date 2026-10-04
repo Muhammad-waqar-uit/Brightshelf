@@ -2104,6 +2104,31 @@ select:focus-visible {
   color: var(--color-error);
 }
 
+.seller-listing__preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--color-paper);
+}
+
+.seller-listing__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.seller-listing__image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink-soft);
+  font-size: 0.75rem;
+}
+
 .seller-listing__actions {
   display: flex;
   flex-wrap: wrap;

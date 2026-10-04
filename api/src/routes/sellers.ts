@@ -30,6 +30,13 @@ const profileSchema = z
     displayName: z.string().trim().min(1).max(80),
   })
   .strict();
+const httpsUrl = z
+  .string()
+  .url()
+  .refine((value) => new URL(value).protocol === 'https:')
+  .nullable()
+  .optional();
+
 const listingSchema = z
   .object({
     title: z.string().trim().min(1).max(160),
@@ -37,6 +44,8 @@ const listingSchema = z
     category: z.string().trim().min(1).max(80),
     priceCents: z.number().int().min(1).max(99_999_999),
     stock: z.number().int().min(0).max(1_000_000),
+    thumbnailUrl: httpsUrl,
+    images: z.array(httpsUrl).max(8).default([]),
   })
   .strict();
 const listingUpdateSchema = listingSchema

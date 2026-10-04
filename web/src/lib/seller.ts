@@ -16,6 +16,8 @@ export interface SellerListing {
   price: number;
   stock: number;
   listingStatus: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  thumbnailUrl: string | null;
+  images: string[];
   createdAt: string;
   updatedAt: string;
 }
