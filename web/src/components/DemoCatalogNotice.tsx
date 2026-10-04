@@ -1,8 +1,8 @@
 export function DemoCatalogNotice() {
   return (
     <aside className="demo-catalog-notice" aria-label="Demo catalogue disclosure">
-      Synthetic catalogue items are fictional examples, not for sale. Seller-created listings are
-      separate from the demo catalogue.
+      Brightshelf sells real imported products and seller-created listings. Prices and stock are
+      shown per item at checkout.
     </aside>
   );
 }
