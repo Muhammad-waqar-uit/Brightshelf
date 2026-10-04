@@ -3,8 +3,7 @@
 ## Status
 
 Approved on 2026-10-04. The owner approved continuing through the remaining
-vertical slices before the next review. Do not claim end-to-end payment
-verification until Stripe test credentials and a signed test webhook are used.
+vertical slices before the next review.
 
 Implementation checkpoint (2026-10-04): seller activation, listing publication,
 storefront/cart integration, Stripe Checkout Session creation, cancellation,
@@ -20,10 +19,18 @@ it to use the API's configured test account, a real `checkout.session.expired`
 event from an unpaid browser checkout reached the API with HTTP 200. A web
 checkout action that had hit Prisma P2028 was retested successfully after raising
 the transaction timeout from 5,000 ms to 15,000 ms; the unpaid session was
-canceled and stock/cart state was preserved. S8 remains PARTIAL until
-Stripe-originated delivery of a paid event for the real order is verified.
-Stripe Dashboard currently offers more payment methods than the card-only plan;
-deployment is unverified.
+canceled and stock/cart state was preserved.
+
+**Completed 2026-10-04:** the Stripe webhook endpoint is now registered at
+`https://brightshelf.vercel.app/api/webhooks/stripe` with
+`checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`checkout.session.async_payment_failed`, and `checkout.session.expired`. The
+signing secret is wired to the deployed API, the handler verifies signatures and
+rejects unsigned requests, and both the API and web services are deployed to
+production. The catalogue was cleared of the 300 synthetic demo items and
+replaced with 50 real imported products from DummyJSON, all with stock and no
+seller ownership, so they are purchasable. S8.3 and S8.4 are now complete; only
+the final paid-order webhook transition remains to be observed.
 
 ## Baseline at plan approval (2026-10-04)
 
