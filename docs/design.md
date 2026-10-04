@@ -10,7 +10,7 @@ Brightshelf is a compact general merchandise shop. The interface should make the
 - Provide accessible names, labelled fields, visible keyboard focus, and usable dialogs.
 - Show honest loading, empty, validation, and failure states.
 - Use catalogue facts as supplied. Do not invent ratings, stock, discounts, shipping promises, or review content.
-- Identify checkout payment as simulated. Do not collect real card details.
+- Use Stripe-hosted test checkout for seller listings. Do not collect card details in Brightshelf or enable live charges.
 
 ## Responsive layout guidance
 
@@ -43,13 +43,35 @@ The product page loads by stable catalogue ID and presents the available product
 
 Guests can keep a cart without signing in. Signed-in carts are stored for the authenticated user. Cart actions support adding an item, changing quantity, and removing an item. The API validates product availability and quantity and returns current prices and totals. A guest cart merge, if used at sign-in, is validated by the API rather than trusted as an account cart.
 
+Guest cart entries contain only product IDs and quantities in browser storage.
+The account-cart API provides authenticated read, replace, merge, add, update,
+remove, and clear operations. Merge requests include a persisted UUID
+idempotency key so a retry after a lost response cannot add the same guest
+quantities twice; unavailable or over-limit guest entries are reported.
+
 ### Sign-in
 
-The roadmap requires Google sign-in and a choice of email one-time code or sign-in link. All successful methods must resolve to the same server-verifiable session. Passkeys remain the later optional S7 slice.
+The roadmap requires Google sign-in and a choice of email one-time code or
+sign-in link. All successful methods resolve to the same server-verifiable
+session. The web application handles the Google authorization-code callback,
+validates OAuth state, exchanges the code server-side, and asks the API to
+verify Google's signed identity before issuing the session cookie. Web OAuth
+start and callback handlers use `/auth/google` and `/auth/google/callback`;
+email links use `/auth/email/callback`. These web routes remain outside `/api/*`
+because Vercel rewrites that prefix to Express. The Google redirect URI must
+exactly match `GOOGLE_REDIRECT_URI` and the OAuth client configuration. Email
+codes and link tokens are stored as hashes, expire, and can only be consumed
+once. Passkeys remain the later optional S7 slice.
 
 ### Checkout and orders
 
-Checkout requires the approved account flow, collects a validated address, and presents a clearly simulated payment step. On submission the API reloads the cart and product prices, computes the order amount, creates a persistent order, and clears only that account's cart after success. Customers can view their own order list and order detail.
+Legacy S6 simulated orders remain readable but the previous simulated-order creation endpoint is retired. New orders can only be created from the signed-in account cart through the Stripe test checkout flow. Brightshelf sends the validated delivery address and UUID idempotency key; the API reads current cart lines and prices, reserves stock atomically, and snapshots the order before creating a hosted Stripe Checkout Session. Stripe webhooks, verified against the exact raw request body and deduplicated by event ID, determine paid/canceled/failed status. The browser return URL never confirms payment. Buyer order history remains bounded and owner-scoped.
+
+### Seller listings and marketplace payments
+
+Self-serve seller profiles belong to the verified account. Seller listing APIs derive the seller profile from that account and scope every product mutation by both listing ID and seller ID. New listings start as drafts, require available stock before publishing, and can be unpublished or archived. Public catalogue/detail and cart reads exclude drafts and archived seller products and enforce the seller listing stock limit. `/seller` manages profile and listings; `/seller/sales` shows only seller-owned order line items and payment states. Synthetic catalogue items remain fictional, browse-only, and are never eligible for checkout.
+
+The approved marketplace plan uses Stripe-hosted Checkout in test mode. Buyer payment is collected on the Brightshelf platform account; Stripe Connect, seller payouts, tax calculation, and live payments are excluded. Failed session creation releases stock and retains the cart. The cancel return expires the pending Stripe session and releases the reservation; webhook expiration/failure does the same idempotently. Paid webhooks preserve reserved inventory and clear only cart lines unchanged since checkout started. Buyer order details stay owner-scoped. Seller sales views expose only the seller's own line items and never include buyer delivery addresses.
 
 ### Passkeys
 
@@ -90,20 +112,28 @@ Supabase Storage is an available service only. The approved product has no image
 
 Product, price, cart, and order values returned by the API are authoritative. Do not put per-user data in a shared cache. Shared catalogue reads may be revalidated; mutations that affect visible cached data must invalidate the relevant entries.
 
+The local catalogue used for development is a synthetic Brightshelf demo dataset.
+Its descriptions explicitly identify examples as fictional, its prices are
+illustrative, and product image fields are empty. It uses no third-party
+catalogue content or product imagery. Keep that disclosure visible on catalogue
+and product pages; do not present demo items as purchasable inventory. Seller-created listings are separate and use a Stripe test-mode checkout flow.
+
 ## API and UI slice gate
 
 Every customer-facing page or interactive feature must ship with its required API contract in the same roadmap slice, or consume a verified API contract completed by the foundation. Do not mark a slice complete with fixture-only data or a frontend control that has no working server behavior.
 
-| Phase                    | API responsibility delivered with the web behavior                                                                                                                                                                                                  |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Step-05 Foundation       | `GET /api/health`, migrated catalogue schema, source-approved seed/import, and bounded catalogue reads needed by the first storefront slice.                                                                                                        |
-| S1 Storefront and home   | Catalogue-backed home/category reads and the matching server-rendered web caller.                                                                                                                                                                   |
-| S2 Search and categories | `GET /api/products` validates `q`, exact `category`, `minPrice`/`maxPrice`, `sort` (`newest`, `price-asc`, `price-desc`), `page`, and bounded `limit`; returns products with pagination metadata for URL-driven results.                            |
-| S3 Product detail        | `GET /api/products/:id` and not-found/error behavior; cart mutation is delivered in S4.                                                                                                                                                             |
-| S4 Cart                  | Browser-persisted guest product IDs and quantities, an API quote that validates availability and recalculates current prices/totals, and the product-page add-to-cart control. Signed-in carts are added with S5 when verified user sessions exist. |
-| S5 Account access        | Email and Google challenge/callback/session API, verification and rate-limit behavior, protected-route callers, and owner-bound cart persistence/guest-cart merge.                                                                                  |
-| S6 Checkout and orders   | Address/order validation, server-calculated order creation, cart clearing after success, and owner-checked list/detail reads.                                                                                                                       |
-| S7 Passkeys              | Optional WebAuthn ceremony/credential API and the corresponding sign-in UI, only after the core journey.                                                                                                                                            |
+| Phase                    | API responsibility delivered with the web behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Step-05 Foundation       | `GET /api/health`, migrated catalogue schema, source-approved seed/import, and bounded catalogue reads needed by the first storefront slice.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| S1 Storefront and home   | Catalogue-backed home/category reads and the matching server-rendered web caller.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| S2 Search and categories | `GET /api/products` validates `q`, exact `category`, `minPrice`/`maxPrice`, `sort` (`newest`, `price-asc`, `price-desc`), `page`, and bounded `limit`; returns products with pagination metadata for URL-driven results.                                                                                                                                                                                                                                                                                                                                                                           |
+| Catalogue navigation     | `GET /api/products/categories` returns distinct stored categories for home and search navigation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| S3 Product detail        | `GET /api/products/:id` and not-found/error behavior; cart mutation is delivered in S4.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| S4 Cart                  | Browser-persisted guest product IDs and quantities, server-priced quotes, authenticated owner-bound cart CRUD, and a guest merge endpoint with UUID idempotency keys and explicit rejected-item reporting.                                                                                                                                                                                                                                                                                                                                                                                         |
+| S5 Account access        | Email and Google challenge/callback/session API, verification and rate-limit behavior, protected-route callers, and session establishment used by the account-cart callers.                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| S6 Checkout and orders   | Existing simulated orders remain readable. New `POST /api/orders` requests are rejected; seller checkout uses `POST /api/checkout/session`, which derives cart lines/prices from the signed-in account, atomically reserves published seller stock, snapshots the order, and returns a server-generated Stripe-hosted test Checkout URL. `POST /api/checkout/:orderId/cancel` expires a buyer-owned session and releases its stock. `POST /api/webhooks/stripe` verifies the exact raw body and processes idempotent payment/expiration events. Buyer order reads remain bounded and owner-scoped. |
+| S8 Seller marketplace    | `POST /api/seller/profile` activates a seller profile from the verified session; seller listing create/update/publish/unpublish/archive and bounded reads are owner-scoped. Public catalogue, product detail, and cart show published seller attribution and inventory. `/seller` manages listings; `/seller/sales` returns only the seller's own line items and payment states, without buyer delivery details. Synthetic products cannot be added for purchase.                                                                                                                                  |
+| S7 Passkeys              | Optional WebAuthn ceremony/credential API and the corresponding sign-in UI, only after the core journey.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 For each phase, add or update API validation and service tests before or with the web integration tests. Review both API and web callers when a route changes, and update `docs/design.md` if the externally visible contract changes. Validate loading, empty, error, and responsive states against narrow and wide viewports before calling the slice done.
 
@@ -127,10 +157,11 @@ For every slice:
 3. S3: product detail.
 4. S4: guest and signed-in cart.
 5. S5: approved email and Google sign-in contract.
-6. S6: mock checkout and order history.
-7. S7: optional passkeys.
-8. Step-07: end-to-end hardening and mobile verification.
-9. Step-08: project README and walkthrough outline.
-10. Step-09: public deployment, repository, capture-log, and submission checks.
+6. S6: legacy simulated checkout and order history.
+7. S8: seller listings, test-mode Stripe checkout, payment webhooks, and buyer/seller order views.
+8. S7: optional passkeys.
+9. Step-07: end-to-end hardening and mobile verification.
+10. Step-08: project README and walkthrough outline.
+11. Step-09: public deployment, repository, capture-log, and submission checks.
 
 The foundation step precedes these slices and covers the Express API, Supabase connection, migrations, approved catalogue seed, and initial free deployments.
