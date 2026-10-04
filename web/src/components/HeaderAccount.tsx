@@ -199,13 +199,13 @@ export default function HeaderAccount() {
                   {authState.message}
                 </p>
               )}
-              <form action={updateAuthState}>
+              <form action={updateAuthState} className="profile-popover__signout-form">
                 <input name="intent" type="hidden" value="logout" />
                 <button className="profile-popover__signout" type="submit" disabled={pending}>
                   {pending ? 'Signing out...' : 'Sign out'}
                 </button>
               </form>
-              <form action={updateAuthState}>
+              <form action={updateAuthState} className="profile-popover__signout-form">
                 <input name="intent" type="hidden" value="logout-everywhere" />
                 <button className="profile-popover__signout" type="submit" disabled={pending}>
                   Sign out everywhere

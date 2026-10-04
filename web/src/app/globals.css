@@ -221,6 +221,10 @@ select:focus-visible {
   opacity: 0.65;
 }
 
+.profile-popover__signout-form + .profile-popover__signout-form {
+  margin-top: 0.5rem;
+}
+
 .header-account__error {
   color: var(--color-error);
   font-size: 0.75rem;
