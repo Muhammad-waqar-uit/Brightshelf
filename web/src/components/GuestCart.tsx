@@ -201,7 +201,7 @@ export function GuestCart() {
   }
 
   const quotedItems = quote?.items ?? [];
-  const hasIneligibleItems = quotedItems.some(({ product }) => !product.sellerName);
+  const hasIneligibleItems = quotedItems.some(({ product }) => product.isSyntheticDemo);
   const ownListingIds = quotedItems
     .filter(({ product }) => product.isOwnListing)
     .map(({ product }) => product.id);
@@ -228,7 +228,11 @@ export function GuestCart() {
               <img className="cart-item__image" src={product.thumbnailUrl} alt="" />
             ) : (
               <div className="cart-item__image cart-item__image--empty" aria-hidden="true">
-                {product.sellerName ? 'No image supplied by seller' : 'Demo item - no image'}
+                {product.sellerName
+                  ? 'No image supplied by seller'
+                  : product.isSyntheticDemo
+                    ? 'Demo item - no image'
+                    : 'No image'}
               </div>
             )}
             <div className="cart-item__details">
@@ -240,9 +244,9 @@ export function GuestCart() {
               </Link>
               <p>{formatCurrency(product.price)} each</p>
               <p className="cart-item__seller">
-                {product.sellerName
-                  ? `Sold by ${product.sellerName}`
-                  : 'Fictional demo item, not for sale'}
+                {product.isSyntheticDemo
+                  ? 'Fictional demo item, not for sale'
+                  : `Sold by ${product.sellerName}`}
               </p>
               {product.isOwnListing && (
                 <p className="cart-item__own-listing">Your listing - not available for purchase</p>

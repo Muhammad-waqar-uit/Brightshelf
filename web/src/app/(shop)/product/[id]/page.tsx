@@ -68,7 +68,7 @@ function ProductDetails({ product }: { product: StoreProduct }) {
           <h2>About this product</h2>
           <p>{product.description}</p>
         </div>
-        {product.sellerName ? (
+        {!product.isSyntheticDemo ? (
           <AddToCart productId={product.id} stock={product.stock ?? 0} />
         ) : (
           <p className="product-detail__not-for-sale">
