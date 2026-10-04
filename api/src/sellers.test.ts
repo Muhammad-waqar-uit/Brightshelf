@@ -117,7 +117,10 @@ describe('seller profile and listing API', () => {
       .set('Cookie', sessionCookie)
       .send(listingInput);
     expect(created.status).toBe(201);
-    expect(sellerServices.createSellerListing).toHaveBeenCalledWith(profile.id, listingInput);
+    expect(sellerServices.createSellerListing).toHaveBeenCalledWith(profile.id, {
+      ...listingInput,
+      images: [],
+    });
 
     const forgedOwner = await request(app)
       .post('/api/seller/products')
@@ -170,7 +173,7 @@ describe('seller profile and listing API', () => {
     expect(sellerServices.updateSellerListing).toHaveBeenCalledWith(
       profile.id,
       'another-seller-product',
-      { title: 'Attempted takeover' },
+      { title: 'Attempted takeover', images: [] },
     );
     const excessivePrice = await request(app)
       .post('/api/seller/products')

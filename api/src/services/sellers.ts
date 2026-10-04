@@ -50,6 +50,19 @@ export async function getSellerProfile(userId: string) {
 
 export async function listSellerListings(sellerId: string, page: number, limit: number) {
   const where = { sellerId };
+  const listingSelect = {
+    id: true,
+    title: true,
+    description: true,
+    category: true,
+    price: true,
+    stock: true,
+    listingStatus: true,
+    thumbnailUrl: true,
+    images: true,
+    createdAt: true,
+    updatedAt: true,
+  } as const;
   const [total, rows] = await prisma.$transaction([
     prisma.product.count({ where }),
     prisma.product.findMany({
@@ -57,17 +70,7 @@ export async function listSellerListings(sellerId: string, page: number, limit: 
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * limit,
       take: limit,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        category: true,
-        price: true,
-        stock: true,
-        listingStatus: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: listingSelect,
     }),
   ]);
   const totalPages = Math.ceil(total / limit);
@@ -80,17 +83,7 @@ export async function listSellerListings(sellerId: string, page: number, limit: 
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
           skip: (currentPage - 1) * limit,
           take: limit,
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            category: true,
-            price: true,
-            stock: true,
-            listingStatus: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          select: listingSelect,
         });
 
   return {
@@ -240,6 +233,8 @@ export async function setSellerListingStatus(
       price: true,
       stock: true,
       listingStatus: true,
+      thumbnailUrl: true,
+      images: true,
       createdAt: true,
       updatedAt: true,
     },

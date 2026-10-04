@@ -45,7 +45,11 @@ const listingSchema = z
     priceCents: z.number().int().min(1).max(99_999_999),
     stock: z.number().int().min(0).max(1_000_000),
     thumbnailUrl: httpsUrl,
-    images: z.array(httpsUrl).max(8).default([]),
+    images: z
+      .array(httpsUrl)
+      .max(8)
+      .default([])
+      .transform((items) => items.filter((item): item is string => typeof item === 'string')),
   })
   .strict();
 const listingUpdateSchema = listingSchema
